@@ -2,10 +2,12 @@ import { Plus, X } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 
 type NewRoomFormProps = {
+  compact?: boolean;
+  ctaLabel?: string;
   onCreateRoom: (input: { title: string; destination: string; period: string }) => void;
 };
 
-export function NewRoomForm({ onCreateRoom }: NewRoomFormProps) {
+export function NewRoomForm({ compact = false, ctaLabel = '채팅방 만들기', onCreateRoom }: NewRoomFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [destination, setDestination] = useState('');
@@ -28,15 +30,15 @@ export function NewRoomForm({ onCreateRoom }: NewRoomFormProps) {
 
   if (!isOpen) {
     return (
-      <button className="new-room-toggle" onClick={() => setIsOpen(true)} type="button">
+      <button className={`new-room-toggle ${compact ? 'compact' : ''}`} onClick={() => setIsOpen(true)} type="button">
         <Plus size={17} />
-        새 채팅방
+        {ctaLabel}
       </button>
     );
   }
 
   return (
-    <form className="new-room-form" onSubmit={handleSubmit}>
+    <form className={`new-room-form ${compact ? 'compact' : ''}`} onSubmit={handleSubmit}>
       <div>
         <strong>새 채팅방</strong>
         <button aria-label="닫기" onClick={() => setIsOpen(false)} type="button">

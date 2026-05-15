@@ -14,7 +14,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('chat');
   const [activePanel, setActivePanel] = useState<PanelId>('plan');
   const [rooms, setRooms] = useState(() => loadRooms(chatRooms));
-  const [activeRoomId, setActiveRoomId] = useState(() => loadRooms(chatRooms)[0].id);
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(() => loadRooms(chatRooms)[0]?.id ?? null);
   const [profile, setProfileState] = useState<Profile | null>(() => loadProfile());
   const [summaryStyle, setSummaryStyle] = useState(summaryStyles[0]);
 
@@ -28,6 +28,8 @@ export default function App() {
   };
 
   const toggleTask = (taskId: number) => {
+    if (!activeRoomId) return;
+
     setRooms((current) =>
       current.map((room) =>
         room.id === activeRoomId
@@ -40,7 +42,7 @@ export default function App() {
     );
   };
 
-  const activeRoom = rooms.find((room) => room.id === activeRoomId) ?? rooms[0];
+  const activeRoom = rooms.find((room) => room.id === activeRoomId);
   const showSettings = activeTab === 'settings' || (activeTab === 'chat' && activePanel === 'settings');
   const showPlan = activeTab === 'plan' || (activeTab === 'chat' && activePanel === 'plan');
 
@@ -53,7 +55,7 @@ export default function App() {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!profile) return;
+    if (!profile || !activeRoomId) return;
     setRooms((current) =>
       current.map((room) =>
         room.id === activeRoomId ? addMessageToRoom(room, { nickname: profile.nickname, text }) : room,
@@ -85,7 +87,7 @@ export default function App() {
       <aside className={`side-panel ${activeTab !== 'chat' ? 'is-active' : ''}`}>
         <PanelTabs activePanel={activePanel} onChange={setActivePanel} />
         <div className={showSettings ? 'panel-view' : 'panel-view is-hidden-mobile'}>
-          {showSettings && (
+          {showSettings && activeRoom && (
             <SettingsView
               members={activeRoom.members}
               summaryStyles={summaryStyles}
@@ -93,9 +95,15 @@ export default function App() {
               onSummaryStyleChange={setSummaryStyle}
             />
           )}
+          {showSettings && !activeRoom && (
+            <div className="empty-panel">
+              <h2>방 설정</h2>
+              <p>계획 노트를 만들면 멤버와 알림 설정을 관리할 수 있어요.</p>
+            </div>
+          )}
         </div>
         <div className={showPlan ? 'panel-view' : 'panel-view is-hidden-mobile'}>
-          {showPlan && (
+          {showPlan && activeRoom && (
             <PlanNote
               room={activeRoom}
               rooms={rooms}
@@ -108,6 +116,12 @@ export default function App() {
               onSelectRoom={setActiveRoomId}
               onToggleTask={toggleTask}
             />
+          )}
+          {showPlan && !activeRoom && (
+            <div className="empty-panel">
+              <h2>계획 노트</h2>
+              <p>첫 채팅방을 만들면 이곳에 일정표와 준비 목록이 정리됩니다.</p>
+            </div>
           )}
         </div>
       </aside>

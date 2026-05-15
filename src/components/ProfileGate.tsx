@@ -24,6 +24,18 @@ export function ProfileGate({ onComplete }: ProfileGateProps) {
     });
   };
 
+  const handleImageFile = (file?: File) => {
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setSelectedImage(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <main className="profile-gate">
       <div className="sky-sticker cloud-one" />
@@ -44,6 +56,11 @@ export function ProfileGate({ onComplete }: ProfileGateProps) {
             <Image size={18} />
             프로필 이미지
           </span>
+          <label className="photo-picker">
+            <input accept="image/*" type="file" onChange={(event) => handleImageFile(event.target.files?.[0])} />
+            <span>{selectedImage.startsWith('data:') ? <img src={selectedImage} alt="" /> : <Image size={18} />}</span>
+            사진첩에서 선택
+          </label>
           <div className="profile-image-grid">
             {profileImages.map((image) => (
               <button

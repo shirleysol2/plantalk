@@ -2,9 +2,11 @@ import type { ChatRoom, Profile } from '../types';
 
 const ROOMS_KEY = 'plantalk.rooms';
 const PROFILE_KEY = 'plantalk.profile';
+const LEGACY_SAMPLE_ROOM_IDS = new Set(['jeju', 'bangkok', 'osaka']);
 
 export function loadRooms(fallback: ChatRoom[]) {
-  return readJson<ChatRoom[]>(ROOMS_KEY) ?? fallback;
+  const rooms = readJson<ChatRoom[]>(ROOMS_KEY);
+  return Array.isArray(rooms) ? rooms.filter((room) => !LEGACY_SAMPLE_ROOM_IDS.has(room.id)) : fallback;
 }
 
 export function saveRooms(rooms: ChatRoom[]) {
