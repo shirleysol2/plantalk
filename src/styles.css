@@ -450,7 +450,7 @@ button {
 }
 
 .room-item em,
-.room-delete-button {
+.room-more-button {
   display: grid;
   width: 24px;
   height: 24px;
@@ -464,10 +464,43 @@ button {
   font-weight: 1000;
 }
 
-.room-delete-button {
+.room-more-wrap {
+  position: relative;
+}
+
+.room-more-button {
   border-color: rgba(31, 29, 27, 0.55);
   background: #fffdf8;
-  color: #ff6f59;
+  color: #655c50;
+}
+
+.room-more-menu {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  z-index: 20;
+  min-width: 132px;
+  border: 2px solid #1f1d1b;
+  border-radius: 14px;
+  padding: 6px;
+  background: #fffdf8;
+  box-shadow: 0 12px 22px rgba(31, 29, 27, 0.14);
+}
+
+.room-more-menu button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 32px;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 8px;
+  background: transparent;
+  color: #d64535;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: left;
 }
 
 .chat-main {

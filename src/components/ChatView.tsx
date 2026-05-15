@@ -42,6 +42,7 @@ export function ChatView({
   const [messageText, setMessageText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [openActionMessageId, setOpenActionMessageId] = useState<number | null>(null);
+  const [openRoomMenuId, setOpenRoomMenuId] = useState<string | null>(null);
   const [isMobileRoomOpen, setIsMobileRoomOpen] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,6 +55,7 @@ export function ChatView({
   };
 
   const closeActionMenu = () => setOpenActionMessageId(null);
+  const closeRoomMenu = () => setOpenRoomMenuId(null);
 
   const clearLongPressTimer = () => {
     if (longPressTimer.current) {
@@ -95,6 +97,7 @@ export function ChatView({
     onSelectRoom(roomId);
     setIsMobileRoomOpen(true);
     setSearchQuery('');
+    closeRoomMenu();
   };
 
   const handleBackToRooms = () => {
@@ -106,11 +109,16 @@ export function ChatView({
     const handlePointerDownOutside = (event: globalThis.PointerEvent) => {
       if (!(event.target instanceof Element)) return;
       if (event.target.closest('.message-action-menu') || event.target.closest('.message-action-button')) return;
+      if (event.target.closest('.room-more-menu') || event.target.closest('.room-more-button')) return;
       closeActionMenu();
+      closeRoomMenu();
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeActionMenu();
+      if (event.key === 'Escape') {
+        closeActionMenu();
+        closeRoomMenu();
+      }
     };
 
     document.addEventListener('pointerdown', handlePointerDownOutside);
@@ -125,6 +133,7 @@ export function ChatView({
 
   useEffect(() => {
     closeActionMenu();
+    closeRoomMenu();
   }, [activeRoomId]);
 
   const viewClassName = `chat-view ${rooms.length > 0 ? 'has-rooms' : 'is-empty'} ${isMobileRoomOpen ? 'is-room-open' : ''}`;
@@ -162,16 +171,33 @@ export function ChatView({
                 </span>
               </button>
               {room.unread > 0 && <em>{room.unread}</em>}
-              <button
-                aria-label={`${room.title} 채팅방 삭제`}
-                className="room-delete-button"
-                onClick={() => {
-                  if (window.confirm(`${room.title} 채팅방을 삭제할까요?`)) onDeleteRoom?.(room.id);
-                }}
-                type="button"
-              >
-                <Trash2 size={15} />
-              </button>
+              <div className="room-more-wrap">
+                <button
+                  aria-expanded={openRoomMenuId === room.id}
+                  aria-haspopup="menu"
+                  aria-label={`${room.title} 메뉴`}
+                  className="room-more-button"
+                  onClick={() => setOpenRoomMenuId((current) => (current === room.id ? null : room.id))}
+                  type="button"
+                >
+                  <MoreVertical size={15} />
+                </button>
+                {openRoomMenuId === room.id && (
+                  <div className="room-more-menu" role="menu">
+                    <button
+                      onClick={() => {
+                        closeRoomMenu();
+                        if (window.confirm(`${room.title} 채팅방을 삭제할까요?`)) onDeleteRoom?.(room.id);
+                      }}
+                      role="menuitem"
+                      type="button"
+                    >
+                      <Trash2 size={14} />
+                      채팅방 삭제
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
