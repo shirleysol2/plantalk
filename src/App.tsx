@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { ChatView } from './components/ChatView';
 import { PanelTabs } from './components/PanelTabs';
@@ -6,31 +6,60 @@ import { PlanNote } from './components/PlanNote';
 import { ProfileGate } from './components/ProfileGate';
 import { SettingsView } from './components/SettingsView';
 import { chatRooms, summaryStyles } from './data';
-import type { PanelId, Profile, TabId, TaskItem } from './types';
+import { addMessageToRoom, createRoom } from './services/roomActions';
+import { loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
+import type { PanelId, Profile, TabId } from './types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('chat');
   const [activePanel, setActivePanel] = useState<PanelId>('plan');
-  const [activeRoomId, setActiveRoomId] = useState(chatRooms[0].id);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [tasksByRoom, setTasksByRoom] = useState<Record<string, TaskItem[]>>(() =>
-    Object.fromEntries(chatRooms.map((room) => [room.id, room.tasks])),
-  );
+  const [rooms, setRooms] = useState(() => loadRooms(chatRooms));
+  const [activeRoomId, setActiveRoomId] = useState(() => loadRooms(chatRooms)[0].id);
+  const [profile, setProfileState] = useState<Profile | null>(() => loadProfile());
   const [summaryStyle, setSummaryStyle] = useState(summaryStyles[0]);
 
-  const toggleTask = (taskId: number) => {
-    setTasksByRoom((current) => ({
-      ...current,
-      [activeRoomId]: current[activeRoomId].map((task) =>
-        task.id === taskId ? { ...task, done: !task.done } : task,
-      ),
-    }));
+  useEffect(() => {
+    saveRooms(rooms);
+  }, [rooms]);
+
+  const setProfile = (nextProfile: Profile) => {
+    setProfileState(nextProfile);
+    saveProfile(nextProfile);
   };
 
-  const activeRoom = chatRooms.find((room) => room.id === activeRoomId) ?? chatRooms[0];
-  const activeTasks = tasksByRoom[activeRoom.id] ?? activeRoom.tasks;
+  const toggleTask = (taskId: number) => {
+    setRooms((current) =>
+      current.map((room) =>
+        room.id === activeRoomId
+          ? {
+              ...room,
+              tasks: room.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done } : task)),
+            }
+          : room,
+      ),
+    );
+  };
+
+  const activeRoom = rooms.find((room) => room.id === activeRoomId) ?? rooms[0];
   const showSettings = activeTab === 'settings' || (activeTab === 'chat' && activePanel === 'settings');
   const showPlan = activeTab === 'plan' || (activeTab === 'chat' && activePanel === 'plan');
+
+  const handleCreateRoom = (input: { title: string; destination: string; period: string }) => {
+    if (!profile) return;
+    const room = createRoom({ ...input, nickname: profile.nickname });
+    setRooms((current) => [room, ...current]);
+    setActiveRoomId(room.id);
+    setActiveTab('chat');
+  };
+
+  const handleSendMessage = (text: string) => {
+    if (!profile) return;
+    setRooms((current) =>
+      current.map((room) =>
+        room.id === activeRoomId ? addMessageToRoom(room, { nickname: profile.nickname, text }) : room,
+      ),
+    );
+  };
 
   if (!profile) {
     return <ProfileGate onComplete={setProfile} />;
@@ -46,7 +75,9 @@ export default function App() {
           activeRoom={activeRoom}
           activeRoomId={activeRoomId}
           profile={profile}
-          rooms={chatRooms}
+          rooms={rooms}
+          onCreateRoom={handleCreateRoom}
+          onSendMessage={handleSendMessage}
           onSelectRoom={setActiveRoomId}
         />
       </section>
@@ -67,11 +98,11 @@ export default function App() {
           {showPlan && (
             <PlanNote
               room={activeRoom}
-              rooms={chatRooms}
+              rooms={rooms}
               activeRoomId={activeRoomId}
               finalPlan={activeRoom.finalPlan}
               scheduleItems={activeRoom.scheduleItems}
-              tasks={activeTasks}
+              tasks={activeRoom.tasks}
               decisions={activeRoom.decisions}
               budgetItems={activeRoom.budgetItems}
               onSelectRoom={setActiveRoomId}

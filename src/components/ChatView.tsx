@@ -1,4 +1,6 @@
 import { CalendarDays, MessageCircle, SendHorizontal, Sparkles } from 'lucide-react';
+import { FormEvent, useState } from 'react';
+import { NewRoomForm } from './NewRoomForm';
 import type { ChatRoom, Profile } from '../types';
 
 type ChatViewProps = {
@@ -6,10 +8,22 @@ type ChatViewProps = {
   activeRoomId: string;
   profile: Profile;
   rooms: ChatRoom[];
+  onCreateRoom: (input: { title: string; destination: string; period: string }) => void;
+  onSendMessage: (text: string) => void;
   onSelectRoom: (roomId: string) => void;
 };
 
-export function ChatView({ activeRoom, activeRoomId, profile, rooms, onSelectRoom }: ChatViewProps) {
+export function ChatView({ activeRoom, activeRoomId, profile, rooms, onCreateRoom, onSendMessage, onSelectRoom }: ChatViewProps) {
+  const [messageText, setMessageText] = useState('');
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!messageText.trim()) return;
+
+    onSendMessage(messageText);
+    setMessageText('');
+  };
+
   return (
     <div className="chat-view">
       <aside className="room-list">
@@ -20,6 +34,7 @@ export function ChatView({ activeRoom, activeRoomId, profile, rooms, onSelectRoo
           </div>
           <p>채팅방</p>
         </div>
+        <NewRoomForm onCreateRoom={onCreateRoom} />
         <div className="room-items">
           {rooms.map((room) => (
             <button
@@ -77,10 +92,15 @@ export function ChatView({ activeRoom, activeRoomId, profile, rooms, onSelectRoo
           ))}
         </div>
 
-        <form className="composer">
+        <form className="composer" onSubmit={handleSubmit}>
           <MessageCircle size={18} />
-          <input aria-label="메시지 입력" placeholder={`${profile.nickname}님, 메시지를 입력하세요`} />
-          <button aria-label="메시지 보내기" type="button">
+          <input
+            aria-label="메시지 입력"
+            placeholder={`${profile.nickname}님, 메시지를 입력하세요`}
+            value={messageText}
+            onChange={(event) => setMessageText(event.target.value)}
+          />
+          <button aria-label="메시지 보내기" type="submit">
             <SendHorizontal size={18} />
           </button>
         </form>
