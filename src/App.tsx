@@ -7,6 +7,7 @@ import { ProfileGate } from './components/ProfileGate';
 import { SettingsView } from './components/SettingsView';
 import { chatRooms, summaryStyles } from './data';
 import { addMessageToRoom, applyMessageToRoom, createRoom } from './services/roomActions';
+import { appendRemoteInfoLog, loadRemoteRoom, saveRemoteRoom } from './services/remoteRooms';
 import { appendInfoLog, findRoomByShareCode, loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
 import type { BudgetItem, ChatRoom, DecisionItem, Message, MessageApplyTarget, PanelId, Profile, ScheduleItem, TabId, TaskItem } from './types';
 
@@ -29,21 +30,40 @@ export default function App() {
     if (!roomCode) return;
 
     const linkedRoom = findRoomByShareCode(rooms, roomCode);
-    if (!linkedRoom) return;
+    if (linkedRoom) {
+      setActiveRoomId(linkedRoom.id);
+      return;
+    }
 
-    setActiveRoomId(linkedRoom.id);
-    appendInfoLog({
-      action: 'room_opened',
-      userCode: profile.userCode,
-      roomCode: linkedRoom.shareCode,
-      message: `${profile.nickname}님이 공유 링크로 ${linkedRoom.title} 방을 열었어요.`,
+    let cancelled = false;
+
+    loadRemoteRoom(roomCode).then((remoteRoom) => {
+      if (cancelled || !remoteRoom) return;
+
+      setRooms((current) => [remoteRoom, ...current.filter((room) => room.shareCode !== remoteRoom.shareCode)]);
+      setActiveRoomId(remoteRoom.id);
+      logInfo({
+        action: 'room_opened',
+        userCode: profile.userCode,
+        roomCode: remoteRoom.shareCode,
+        message: `${profile.nickname}님이 공유 링크로 ${remoteRoom.title} 방을 열었어요.`,
+      });
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [profile, rooms]);
+
+  const logInfo = (entry: Parameters<typeof appendInfoLog>[0]) => {
+    appendInfoLog(entry);
+    void appendRemoteInfoLog(entry);
+  };
 
   const setProfile = (nextProfile: Profile) => {
     setProfileState(nextProfile);
     saveProfile(nextProfile);
-    appendInfoLog({
+    logInfo({
       action: 'profile_created',
       userCode: nextProfile.userCode,
       message: `${nextProfile.nickname} 프로필이 생성됐어요.`,
@@ -71,7 +91,14 @@ export default function App() {
 
   const updateActiveRoom = (updater: (room: ChatRoom) => ChatRoom) => {
     if (!activeRoomId) return;
-    setRooms((current) => current.map((room) => (room.id === activeRoomId ? updater(room) : room)));
+    setRooms((current) =>
+      current.map((room) => {
+        if (room.id !== activeRoomId) return room;
+        const updatedRoom = updater(room);
+        void saveRemoteRoom(updatedRoom);
+        return updatedRoom;
+      }),
+    );
   };
 
   const updateRoomList = <TItem extends { id: number }>(
@@ -98,7 +125,8 @@ export default function App() {
     setRooms((current) => [room, ...current]);
     setActiveRoomId(room.id);
     setActiveTab('chat');
-    appendInfoLog({
+    void saveRemoteRoom(room);
+    logInfo({
       action: 'room_created',
       userCode: profile.userCode,
       roomCode: room.shareCode,
@@ -110,7 +138,7 @@ export default function App() {
     const shareUrl = `${window.location.origin}${window.location.pathname}?room=${room.shareCode}`;
 
     await navigator.clipboard?.writeText(shareUrl);
-    appendInfoLog({
+    logInfo({
       action: 'share_link_copied',
       userCode: profile.userCode,
       roomCode: room.shareCode,
@@ -121,9 +149,12 @@ export default function App() {
   const handleSendMessage = (text: string) => {
     if (!profile || !activeRoomId) return;
     setRooms((current) =>
-      current.map((room) =>
-        room.id === activeRoomId ? addMessageToRoom(room, { nickname: profile.nickname, text }) : room,
-      ),
+      current.map((room) => {
+        if (room.id !== activeRoomId) return room;
+        const updatedRoom = addMessageToRoom(room, { nickname: profile.nickname, text });
+        void saveRemoteRoom(updatedRoom);
+        return updatedRoom;
+      }),
     );
   };
 
@@ -131,7 +162,7 @@ export default function App() {
     if (!profile) return;
 
     updateActiveRoom((room) => applyMessageToRoom(room, { message, target, nickname: profile.nickname }));
-    appendInfoLog({
+    logInfo({
       action: 'message_applied',
       userCode: profile.userCode,
       roomCode: activeRoom?.shareCode,
