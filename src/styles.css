@@ -968,17 +968,23 @@ h3 {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 82px;
   padding: 16px 18px 18px;
   background: #fff48d;
   border-top: 3px solid #1f1d1b;
+  box-sizing: border-box;
 }
 
 .composer input {
   min-width: 0;
+  height: 46px;
   flex: 1;
   border: 3px solid #1f1d1b;
   border-radius: 999px;
   padding: 12px 16px;
+  box-sizing: border-box;
+  font-size: 16px;
+  line-height: 1;
   outline: none;
 }
 
@@ -2282,9 +2288,11 @@ h1 em,
   }
 
   .composer input {
+    height: 38px;
     border-width: 2px;
     padding: 9px 12px;
-    font-size: 14px;
+    font-size: 16px;
+    line-height: 1;
   }
 
   .composer button {
