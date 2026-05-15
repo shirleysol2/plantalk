@@ -1,4 +1,4 @@
-import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, Link2, ListTodo, MapPinned, Send, Vote } from 'lucide-react';
+import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, Link2, ListTodo, MapPinned, Send, Trash2, Vote } from 'lucide-react';
 import type { BudgetItem, ChatRoom, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
 
 type PlanNoteProps = {
@@ -13,6 +13,14 @@ type PlanNoteProps = {
   onSelectRoom: (roomId: string) => void;
   onCopyRoomLink: (room: ChatRoom) => void;
   onToggleTask: (taskId: number) => void;
+  onUpdateScheduleItem?: (itemId: number, updates: Partial<ScheduleItem>) => void;
+  onDeleteScheduleItem?: (itemId: number) => void;
+  onUpdateTaskItem?: (taskId: number, updates: Partial<TaskItem>) => void;
+  onDeleteTaskItem?: (taskId: number) => void;
+  onUpdateDecisionItem?: (decisionId: number, updates: Partial<DecisionItem>) => void;
+  onDeleteDecisionItem?: (decisionId: number) => void;
+  onUpdateBudgetItem?: (itemId: number, updates: Partial<BudgetItem>) => void;
+  onDeleteBudgetItem?: (itemId: number) => void;
 };
 
 export function PlanNote({
@@ -27,6 +35,14 @@ export function PlanNote({
   onSelectRoom,
   onCopyRoomLink,
   onToggleTask,
+  onUpdateScheduleItem,
+  onDeleteScheduleItem,
+  onUpdateTaskItem,
+  onDeleteTaskItem,
+  onUpdateDecisionItem,
+  onDeleteDecisionItem,
+  onUpdateBudgetItem,
+  onDeleteBudgetItem,
 }: PlanNoteProps) {
   const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
 
@@ -96,9 +112,34 @@ export function PlanNote({
         <div className="timeline">
           {scheduleItems.map((item) => (
             <div className="timeline-item" key={item.id}>
-              <span>{item.date}</span>
-              <strong>{item.title}</strong>
-              <em>{item.status}</em>
+              <input
+                aria-label="일정 날짜"
+                disabled={!onUpdateScheduleItem}
+                onChange={(event) => onUpdateScheduleItem?.(item.id, { date: event.target.value })}
+                value={item.date}
+              />
+              <input
+                aria-label="일정 제목"
+                disabled={!onUpdateScheduleItem}
+                onChange={(event) => onUpdateScheduleItem?.(item.id, { title: event.target.value })}
+                value={item.title}
+              />
+              <input
+                aria-label="일정 상태"
+                disabled={!onUpdateScheduleItem}
+                onChange={(event) => onUpdateScheduleItem?.(item.id, { status: event.target.value })}
+                value={item.status}
+              />
+              {onDeleteScheduleItem && (
+                <button
+                  aria-label="일정 삭제"
+                  className="note-icon-button danger"
+                  onClick={() => onDeleteScheduleItem(item.id)}
+                  type="button"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -111,11 +152,28 @@ export function PlanNote({
         </div>
         <div className="task-list">
           {tasks.map((task) => (
-            <button className={`task-item ${task.done ? 'done' : ''}`} key={task.id} onClick={() => onToggleTask(task.id)} type="button">
-              {task.done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-              <span>{task.title}</span>
-              <small>{task.owner}</small>
-            </button>
+            <div className={`task-item ${task.done ? 'done' : ''}`} key={task.id}>
+              <button aria-label="할 일 완료 토글" className="note-check-button" onClick={() => onToggleTask(task.id)} type="button">
+                {task.done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+              </button>
+              <input
+                aria-label="할 일 제목"
+                disabled={!onUpdateTaskItem}
+                onChange={(event) => onUpdateTaskItem?.(task.id, { title: event.target.value })}
+                value={task.title}
+              />
+              <input
+                aria-label="할 일 담당자"
+                disabled={!onUpdateTaskItem}
+                onChange={(event) => onUpdateTaskItem?.(task.id, { owner: event.target.value })}
+                value={task.owner}
+              />
+              {onDeleteTaskItem && (
+                <button aria-label="할 일 삭제" className="note-icon-button danger" onClick={() => onDeleteTaskItem(task.id)} type="button">
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       </section>
@@ -128,13 +186,55 @@ export function PlanNote({
         <div className="decision-list">
           {decisions.map((decision) => (
             <div className="decision-item" key={decision.id}>
-              <strong>{decision.question}</strong>
-              <div>
-                {decision.options.map((option) => (
-                  <span key={option}>{option}</span>
-                ))}
+              <div className="note-row">
+                <input
+                  aria-label="결정 질문"
+                  disabled={!onUpdateDecisionItem}
+                  onChange={(event) => onUpdateDecisionItem?.(decision.id, { question: event.target.value })}
+                  value={decision.question}
+                />
+                {onDeleteDecisionItem && (
+                  <button
+                    aria-label="결정사항 삭제"
+                    className="note-icon-button danger"
+                    onClick={() => onDeleteDecisionItem(decision.id)}
+                    type="button"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
-              <small>{decision.state}</small>
+              <input
+                aria-label="결정 선택지"
+                disabled={!onUpdateDecisionItem}
+                onChange={(event) =>
+                  onUpdateDecisionItem?.(decision.id, {
+                    options: event.target.value
+                      .split(',')
+                      .map((option) => option.trim())
+                      .filter(Boolean),
+                  })
+                }
+                value={decision.options.join(', ')}
+              />
+              <div className="note-row">
+                <input
+                  aria-label="결정 상태"
+                  disabled={!onUpdateDecisionItem}
+                  onChange={(event) => onUpdateDecisionItem?.(decision.id, { state: event.target.value })}
+                  value={decision.state}
+                />
+                {onUpdateDecisionItem && (
+                  <button
+                    className="note-confirm-button"
+                    disabled={decision.state === '확정'}
+                    onClick={() => onUpdateDecisionItem(decision.id, { state: '확정' })}
+                    type="button"
+                  >
+                    확정
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -152,9 +252,36 @@ export function PlanNote({
         <div className="budget-grid">
           {budgetItems.map((item) => (
             <div className="budget-item" key={item.id}>
-              <span>{item.category}</span>
-              <strong>{item.amount}</strong>
-              <small>{item.note}</small>
+              <div className="note-row">
+                <input
+                  aria-label="예산 항목"
+                  disabled={!onUpdateBudgetItem}
+                  onChange={(event) => onUpdateBudgetItem?.(item.id, { category: event.target.value })}
+                  value={item.category}
+                />
+                {onDeleteBudgetItem && (
+                  <button
+                    aria-label="예산 삭제"
+                    className="note-icon-button danger"
+                    onClick={() => onDeleteBudgetItem(item.id)}
+                    type="button"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+              <input
+                aria-label="예산 금액"
+                disabled={!onUpdateBudgetItem}
+                onChange={(event) => onUpdateBudgetItem?.(item.id, { amount: event.target.value })}
+                value={item.amount}
+              />
+              <input
+                aria-label="예산 메모"
+                disabled={!onUpdateBudgetItem}
+                onChange={(event) => onUpdateBudgetItem?.(item.id, { note: event.target.value })}
+                value={item.note}
+              />
             </div>
           ))}
         </div>

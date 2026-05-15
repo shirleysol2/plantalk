@@ -1,7 +1,7 @@
-import { CalendarDays, Link2, MessageCircle, SendHorizontal, Sparkles } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { CalendarDays, Link2, MessageCircle, MoreVertical, SendHorizontal, Sparkles } from 'lucide-react';
+import { FormEvent, MouseEvent, PointerEvent, useEffect, useRef, useState } from 'react';
 import { NewRoomForm } from './NewRoomForm';
-import type { ChatRoom, Profile } from '../types';
+import type { ChatRoom, Message, MessageApplyTarget, Profile } from '../types';
 
 type ChatViewProps = {
   activeRoom?: ChatRoom;
@@ -12,7 +12,15 @@ type ChatViewProps = {
   onCopyRoomLink: (room: ChatRoom) => void;
   onSendMessage: (text: string) => void;
   onSelectRoom: (roomId: string) => void;
+  onApplyMessage?: (message: Message, targetType: MessageApplyTarget) => void;
 };
+
+const applyActions: { label: string; targetType: MessageApplyTarget }[] = [
+  { label: '일정으로 반영', targetType: 'schedule' },
+  { label: '할 일로 반영', targetType: 'task' },
+  { label: '결정으로 반영', targetType: 'decision' },
+  { label: '예산으로 반영', targetType: 'budget' },
+];
 
 export function ChatView({
   activeRoom,
@@ -23,8 +31,11 @@ export function ChatView({
   onCreateRoom,
   onSendMessage,
   onSelectRoom,
+  onApplyMessage,
 }: ChatViewProps) {
   const [messageText, setMessageText] = useState('');
+  const [openActionMessageId, setOpenActionMessageId] = useState<number | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -33,6 +44,64 @@ export function ChatView({
     onSendMessage(messageText);
     setMessageText('');
   };
+
+  const closeActionMenu = () => setOpenActionMessageId(null);
+
+  const clearLongPressTimer = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleOpenActionMenu = (messageId: number) => {
+    setOpenActionMessageId((current) => (current === messageId ? null : messageId));
+  };
+
+  const handleMessageContextMenu = (event: MouseEvent, messageId: number) => {
+    event.preventDefault();
+    setOpenActionMessageId(messageId);
+  };
+
+  const handlePointerDown = (event: PointerEvent, messageId: number) => {
+    if (event.pointerType === 'mouse' || event.button !== 0) return;
+
+    clearLongPressTimer();
+    longPressTimer.current = setTimeout(() => {
+      setOpenActionMessageId(messageId);
+      longPressTimer.current = null;
+    }, 550);
+  };
+
+  const handleApplyMessage = (message: Message, targetType: MessageApplyTarget) => {
+    onApplyMessage?.(message, targetType);
+    closeActionMenu();
+  };
+
+  useEffect(() => {
+    const handlePointerDownOutside = (event: globalThis.PointerEvent) => {
+      if (!(event.target instanceof Element)) return;
+      if (event.target.closest('.message-action-menu') || event.target.closest('.message-action-button')) return;
+      closeActionMenu();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeActionMenu();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDownOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDownOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+      clearLongPressTimer();
+    };
+  }, []);
+
+  useEffect(() => {
+    closeActionMenu();
+  }, [activeRoomId]);
 
   return (
     <div className="chat-view">
@@ -92,11 +161,45 @@ export function ChatView({
 
             <div className="message-list">
               {activeRoom.messages.map((message) => (
-                <article className={`message-row ${message.mine ? 'mine' : ''}`} key={message.id}>
+                <article
+                  className={`message-row ${message.mine ? 'mine' : ''}`}
+                  key={message.id}
+                  onContextMenu={(event) => handleMessageContextMenu(event, message.id)}
+                  onPointerCancel={clearLongPressTimer}
+                  onPointerDown={(event) => handlePointerDown(event, message.id)}
+                  onPointerLeave={clearLongPressTimer}
+                  onPointerUp={clearLongPressTimer}
+                >
                   {!message.mine && <div className="avatar">{message.initials}</div>}
                   <div className="message-stack">
                     {!message.mine && <span className="sender">{message.sender}</span>}
-                    <div className={`message-bubble ${message.mine ? 'mine' : ''}`}>{message.text}</div>
+                    <div className="message-action-line">
+                      <div className={`message-bubble ${message.mine ? 'mine' : ''}`}>{message.text}</div>
+                      <button
+                        aria-expanded={openActionMessageId === message.id}
+                        aria-haspopup="menu"
+                        aria-label="메시지 반영 메뉴"
+                        className="message-action-button"
+                        onClick={() => handleOpenActionMenu(message.id)}
+                        type="button"
+                      >
+                        <MoreVertical size={15} />
+                      </button>
+                      {openActionMessageId === message.id && (
+                        <div className="message-action-menu" role="menu">
+                          {applyActions.map((action) => (
+                            <button
+                              key={action.targetType}
+                              onClick={() => handleApplyMessage(message, action.targetType)}
+                              role="menuitem"
+                              type="button"
+                            >
+                              {action.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div className="message-meta">
                       <span>{message.time}</span>
                       {message.extraction && (

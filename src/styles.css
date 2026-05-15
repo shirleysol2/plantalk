@@ -607,6 +607,7 @@ h3 {
 }
 
 .message-stack {
+  position: relative;
   display: grid;
   gap: 5px;
 }
@@ -631,6 +632,89 @@ h3 {
 .message-bubble.mine {
   border-radius: 22px 22px 7px 22px;
   background: #fff48d;
+}
+
+.message-action-line {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.message-row.mine .message-action-line {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.message-action-button {
+  display: inline-grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid #ded8ce;
+  border-radius: 50%;
+  background: rgba(255, 253, 248, 0.96);
+  color: #554c40;
+  opacity: 0;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.message-row:hover .message-action-button,
+.message-action-button:focus-visible,
+.message-action-button[aria-expanded='true'] {
+  opacity: 1;
+}
+
+.message-action-button:hover,
+.message-action-button[aria-expanded='true'] {
+  background: #27231d;
+  color: #fffdf8;
+}
+
+.message-action-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 8;
+  display: grid;
+  min-width: 132px;
+  padding: 5px;
+  border: 1px solid #ded8ce;
+  border-radius: 12px;
+  background: rgba(255, 253, 248, 0.98);
+  box-shadow: 0 14px 30px rgba(43, 37, 28, 0.16);
+}
+
+.message-row.mine .message-action-menu {
+  right: 0;
+  left: auto;
+}
+
+.message-action-menu button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #27231d;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.message-action-menu button:hover,
+.message-action-menu button:focus-visible {
+  background: #eef8fc;
+  outline: none;
+}
+
+@media (hover: none) {
+  .message-action-button {
+    opacity: 1;
+  }
 }
 
 .message-meta {
@@ -981,7 +1065,8 @@ h3 {
 
 .timeline-item {
   display: grid;
-  grid-template-columns: 86px 1fr;
+  grid-template-columns: 82px minmax(0, 1fr) 74px auto;
+  align-items: center;
   gap: 4px 10px;
   padding: 10px 0;
   border-top: 2px dashed rgba(31, 29, 27, 0.22);
@@ -991,8 +1076,8 @@ h3 {
   border-top: 0;
 }
 
-.timeline-item span,
-.timeline-item em,
+.timeline-item input:first-child,
+.timeline-item input:nth-child(3),
 .budget-item span,
 .budget-item small,
 .member-item span,
@@ -1003,17 +1088,9 @@ h3 {
   font-style: normal;
 }
 
-.timeline-item strong {
-  min-width: 0;
-}
-
-.timeline-item em {
-  grid-column: 2;
-}
-
 .task-item {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) 76px auto;
   align-items: center;
   gap: 9px;
   width: 100%;
@@ -1025,9 +1102,88 @@ h3 {
   text-align: left;
 }
 
-.task-item.done span {
+.task-item.done input:first-of-type {
   color: #7a7468;
   text-decoration: line-through;
+}
+
+.note-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline-item input,
+.task-item input,
+.decision-item input,
+.budget-item input {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #d8d1c5;
+  border-radius: 10px;
+  padding: 7px 8px;
+  background: #fffdf8;
+  color: #211f1a;
+  font-size: 12px;
+  font-weight: 800;
+  outline: none;
+}
+
+.timeline-item input:focus,
+.task-item input:focus,
+.decision-item input:focus,
+.budget-item input:focus {
+  border-color: #1f1d1b;
+  box-shadow: 0 0 0 2px rgba(255, 111, 89, 0.18);
+}
+
+.timeline-item input:disabled,
+.task-item input:disabled,
+.decision-item input:disabled,
+.budget-item input:disabled {
+  border-color: transparent;
+  padding-left: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 1;
+}
+
+.note-check-button,
+.note-icon-button,
+.note-confirm-button {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #ded8ce;
+  background: #fffdf8;
+  color: #1f1d1b;
+  font-weight: 900;
+}
+
+.note-check-button,
+.note-icon-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  padding: 0;
+}
+
+.note-confirm-button {
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.note-icon-button.danger {
+  color: #d64535;
+}
+
+.note-check-button:disabled,
+.note-icon-button:disabled,
+.note-confirm-button:disabled {
+  cursor: default;
+  opacity: 0.38;
 }
 
 .decision-item,
@@ -1040,9 +1196,6 @@ h3 {
 }
 
 .decision-item div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
   margin: 9px 0;
 }
 
@@ -1067,7 +1220,7 @@ h3 {
 
 .budget-item {
   display: grid;
-  gap: 3px;
+  gap: 7px;
 }
 
 .member-item {

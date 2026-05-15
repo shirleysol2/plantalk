@@ -99,7 +99,9 @@ export type InfoLogEntry = {
   id: string;
   userCode: string;
   roomCode?: string;
-  action: 'profile_created' | 'room_created' | 'room_opened' | 'share_link_copied';
+  action: 'profile_created' | 'room_created' | 'room_opened' | 'share_link_copied' | 'message_applied';
   message: string;
   createdAt: string;
 };
+
+export type MessageApplyTarget = 'schedule' | 'task' | 'decision' | 'budget';

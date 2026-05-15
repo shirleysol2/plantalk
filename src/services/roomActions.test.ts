@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addMessageToRoom, createRoom, getInitials } from './roomActions';
+import { addMessageToRoom, applyMessageToRoom, createRoom, getInitials } from './roomActions';
 
 describe('room actions', () => {
   it('creates a new room with starter plan data', () => {
@@ -41,6 +41,63 @@ describe('room actions', () => {
     expect(updated.tasks.some((task) => task.title.includes('기차 예약'))).toBe(true);
     expect(updated.decisions.some((decision) => decision.question.includes('숙소'))).toBe(true);
     expect(updated.budgetItems.some((budget) => budget.amount === '200,000원')).toBe(true);
+  });
+
+  it('marks extracted tasks and decisions complete when the message says they are done', () => {
+    const room = createRoom({
+      title: '부산 주말여행',
+      destination: 'Busan',
+      period: '6월 7일~6월 8일',
+      nickname: '솔',
+      userCode: 'user_abc123',
+    });
+
+    const updated = addMessageToRoom(room, {
+      nickname: '솔',
+      text: '기차 예약 완료했고 숙소는 해운대로 확정했어.',
+    });
+
+    expect(updated.tasks.some((task) => task.title.includes('기차 예약') && task.done)).toBe(true);
+    expect(updated.decisions.some((decision) => decision.question === '숙소 선택' && decision.state === '확정')).toBe(true);
+  });
+
+  it('records schedule changes as changed schedule items', () => {
+    const room = createRoom({
+      title: '부산 주말여행',
+      destination: 'Busan',
+      period: '6월 7일~6월 8일',
+      nickname: '솔',
+      userCode: 'user_abc123',
+    });
+
+    const updated = addMessageToRoom(room, {
+      nickname: '솔',
+      text: '토요일 3시로 일정 변경하자.',
+    });
+
+    expect(updated.scheduleItems.some((item) => item.status === '변경' && item.title.includes('토요일 3시'))).toBe(true);
+  });
+
+  it('manually applies a chat message to a selected plan section', () => {
+    const room = createRoom({
+      title: '부산 주말여행',
+      destination: 'Busan',
+      period: '6월 7일~6월 8일',
+      nickname: '솔',
+      userCode: 'user_abc123',
+    });
+    const message = {
+      id: 99,
+      sender: '솔',
+      initials: '솔',
+      time: '오후 3:00',
+      text: '숙소 예약 확인하기',
+    };
+
+    const updated = applyMessageToRoom(room, { message, target: 'task', nickname: '솔' });
+
+    expect(updated.tasks.some((task) => task.title === '숙소 예약 확인하기')).toBe(true);
+    expect(updated.lastMessage).toBe(room.lastMessage);
   });
 
   it('creates readable initials from a nickname', () => {

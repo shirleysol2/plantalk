@@ -6,9 +6,9 @@ import { PlanNote } from './components/PlanNote';
 import { ProfileGate } from './components/ProfileGate';
 import { SettingsView } from './components/SettingsView';
 import { chatRooms, summaryStyles } from './data';
-import { addMessageToRoom, createRoom } from './services/roomActions';
+import { addMessageToRoom, applyMessageToRoom, createRoom } from './services/roomActions';
 import { appendInfoLog, findRoomByShareCode, loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
-import type { ChatRoom, PanelId, Profile, TabId } from './types';
+import type { BudgetItem, ChatRoom, DecisionItem, Message, MessageApplyTarget, PanelId, Profile, ScheduleItem, TabId, TaskItem } from './types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('chat');
@@ -69,6 +69,29 @@ export default function App() {
   const showSettings = activeTab === 'settings' || (activeTab === 'chat' && activePanel === 'settings');
   const showPlan = activeTab === 'plan' || (activeTab === 'chat' && activePanel === 'plan');
 
+  const updateActiveRoom = (updater: (room: ChatRoom) => ChatRoom) => {
+    if (!activeRoomId) return;
+    setRooms((current) => current.map((room) => (room.id === activeRoomId ? updater(room) : room)));
+  };
+
+  const updateRoomList = <TItem extends { id: number }>(
+    key: 'scheduleItems' | 'tasks' | 'decisions' | 'budgetItems',
+    itemId: number,
+    updates: Partial<TItem>,
+  ) => {
+    updateActiveRoom((room) => ({
+      ...room,
+      [key]: (room[key] as TItem[]).map((item) => (item.id === itemId ? { ...item, ...updates } : item)),
+    }));
+  };
+
+  const deleteRoomListItem = (key: 'scheduleItems' | 'tasks' | 'decisions' | 'budgetItems', itemId: number) => {
+    updateActiveRoom((room) => ({
+      ...room,
+      [key]: room[key].filter((item) => item.id !== itemId),
+    }));
+  };
+
   const handleCreateRoom = (input: { title: string; destination: string; period: string }) => {
     if (!profile) return;
     const room = createRoom({ ...input, nickname: profile.nickname, userCode: profile.userCode });
@@ -104,6 +127,18 @@ export default function App() {
     );
   };
 
+  const handleApplyMessage = (message: Message, target: MessageApplyTarget) => {
+    if (!profile) return;
+
+    updateActiveRoom((room) => applyMessageToRoom(room, { message, target, nickname: profile.nickname }));
+    appendInfoLog({
+      action: 'message_applied',
+      userCode: profile.userCode,
+      roomCode: activeRoom?.shareCode,
+      message: `${profile.nickname}님이 메시지를 ${target} 항목으로 반영했어요.`,
+    });
+  };
+
   if (!profile) {
     return <ProfileGate onComplete={setProfile} />;
   }
@@ -121,6 +156,7 @@ export default function App() {
           rooms={rooms}
           onCreateRoom={handleCreateRoom}
           onCopyRoomLink={handleCopyRoomLink}
+          onApplyMessage={handleApplyMessage}
           onSendMessage={handleSendMessage}
           onSelectRoom={setActiveRoomId}
         />
@@ -159,6 +195,14 @@ export default function App() {
               onSelectRoom={setActiveRoomId}
               onCopyRoomLink={handleCopyRoomLink}
               onToggleTask={toggleTask}
+              onUpdateScheduleItem={(itemId, updates) => updateRoomList<ScheduleItem>('scheduleItems', itemId, updates)}
+              onDeleteScheduleItem={(itemId) => deleteRoomListItem('scheduleItems', itemId)}
+              onUpdateTaskItem={(taskId, updates) => updateRoomList<TaskItem>('tasks', taskId, updates)}
+              onDeleteTaskItem={(taskId) => deleteRoomListItem('tasks', taskId)}
+              onUpdateDecisionItem={(decisionId, updates) => updateRoomList<DecisionItem>('decisions', decisionId, updates)}
+              onDeleteDecisionItem={(decisionId) => deleteRoomListItem('decisions', decisionId)}
+              onUpdateBudgetItem={(itemId, updates) => updateRoomList<BudgetItem>('budgetItems', itemId, updates)}
+              onDeleteBudgetItem={(itemId) => deleteRoomListItem('budgetItems', itemId)}
             />
           )}
           {showPlan && !activeRoom && (

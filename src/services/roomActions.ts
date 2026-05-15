@@ -1,4 +1,4 @@
-import type { ChatRoom, Message } from '../types';
+import type { ChatRoom, Message, MessageApplyTarget } from '../types';
 
 type CreateRoomInput = {
   title: string;
@@ -11,6 +11,12 @@ type CreateRoomInput = {
 type AddMessageInput = {
   nickname: string;
   text: string;
+};
+
+type ApplyMessageInput = {
+  message: Pick<Message, 'text'>;
+  target: MessageApplyTarget;
+  nickname: string;
 };
 
 export function getInitials(name: string) {
@@ -130,6 +136,39 @@ export function addMessageToRoom(room: ChatRoom, { nickname, text }: AddMessageI
   };
 }
 
+export function applyMessageToRoom(room: ChatRoom, { message, target, nickname }: ApplyMessageInput): ChatRoom {
+  const cleanText = message.text.trim();
+  if (!cleanText) return room;
+
+  const scheduleItems =
+    target === 'schedule'
+      ? [...room.scheduleItems, { id: nextId(room.scheduleItems), ...manualSchedule(cleanText) }]
+      : room.scheduleItems;
+  const tasks =
+    target === 'task' ? [...room.tasks, { id: nextId(room.tasks), ...manualTask(cleanText, nickname) }] : room.tasks;
+  const decisions =
+    target === 'decision'
+      ? [...room.decisions, { id: nextId(room.decisions), ...manualDecision(cleanText) }]
+      : room.decisions;
+  const budgetItems =
+    target === 'budget'
+      ? [...room.budgetItems.filter((item) => item.amount !== '0원'), { id: nextId(room.budgetItems), ...manualBudget(cleanText) }]
+      : room.budgetItems;
+
+  return {
+    ...room,
+    scheduleItems,
+    tasks,
+    decisions,
+    budgetItems,
+    finalPlan: {
+      ...room.finalPlan,
+      summary: buildSummary(room.destination, scheduleItems.length, tasks.length, decisions.length),
+      shareText: `${room.title} 계획 업데이트: 일정 ${scheduleItems.length}개, 할 일 ${tasks.length}개, 결정사항 ${decisions.length}개`,
+    },
+  };
+}
+
 function inferExtraction(text: string): Message['extraction'] {
   if (/예산|비용|원/.test(text)) return { label: '예산 업데이트', tone: 'budget' };
   if (/확정|어때|정하자|숙소|코스/.test(text)) return { label: '결정 필요', tone: 'decision' };
@@ -144,7 +183,7 @@ function inferSchedule(text: string) {
   return {
     date: match[1],
     title: match[0].slice(0, 28),
-    status: /확정/.test(text) ? '확정' : '후보',
+    status: /변경|바꾸|수정|대신/.test(text) ? '변경' : /확정|완료/.test(text) ? '확정' : '후보',
   };
 }
 
@@ -155,7 +194,7 @@ function inferTask(text: string, owner: string) {
   return {
     title: match[1].trim().slice(0, 34),
     owner,
-    done: false,
+    done: /완료|끝|했어|했다|확인했/.test(text),
   };
 }
 
@@ -179,6 +218,30 @@ function inferBudget(text: string) {
     amount: `${amount}원`,
     note: '채팅에서 감지',
   };
+}
+
+function manualSchedule(text: string) {
+  return inferSchedule(text) ?? { date: '수동 반영', title: text.slice(0, 34), status: /확정|완료/.test(text) ? '확정' : '후보' };
+}
+
+function manualTask(text: string, owner: string) {
+  return {
+    title: text.slice(0, 34),
+    owner,
+    done: /완료|끝|했어|했다|확인했/.test(text),
+  };
+}
+
+function manualDecision(text: string) {
+  return {
+    question: text.slice(0, 34),
+    options: /확정|완료|정했/.test(text) ? ['확정'] : ['좋아요', '다시 논의'],
+    state: /확정|완료|정했/.test(text) ? '확정' : '결정 필요',
+  };
+}
+
+function manualBudget(text: string) {
+  return inferBudget(text) ?? { category: '예산', amount: '0원', note: text.slice(0, 34) };
 }
 
 function buildSummary(destination: string, scheduleCount: number, taskCount: number, decisionCount: number) {
