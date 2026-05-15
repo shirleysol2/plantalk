@@ -47,7 +47,7 @@ export function createRoom({ title, destination, period, nickname, userCode }: C
   const shareCode = createShareCode('room');
   const firstMessage: Message = {
     id: 1,
-    sender: 'PlanTalk',
+    sender: 'Plink',
     initials: 'P',
     time: formatTime(),
     text: `${title} 채팅방이 만들어졌어요. 대화하면 계획 노트가 이 방 기준으로 정리돼요.`,

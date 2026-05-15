@@ -1964,3 +1964,613 @@ h1 em,
     padding-right: 14px;
   }
 }
+
+/* Plink brand refresh */
+:root {
+  --plink-blue: #dae9ff;
+  --plink-blue-strong: #beddff;
+  --plink-yellow: #ffeaa7;
+  --plink-yellow-soft: #fff3c7;
+  --plink-cream: #fff7e1;
+  --plink-surface: #ffffff;
+  --plink-surface-soft: #fffdf8;
+  --plink-coral: #ff6b4a;
+  --plink-coral-soft: #ffe7dd;
+  --plink-text: #1f1f23;
+  --plink-subtext: #6b6b76;
+  --plink-line: #eadfca;
+  --plink-shadow: 0 18px 46px rgba(69, 54, 25, 0.1);
+  --plink-shadow-soft: 0 10px 28px rgba(65, 51, 22, 0.08);
+  color: var(--plink-text);
+  background: var(--plink-cream);
+  font-family:
+    Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", ui-sans-serif, system-ui, sans-serif;
+}
+
+.plink-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--plink-text);
+}
+
+.plink-logo-mark {
+  width: 58px;
+  height: auto;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.plink-logo-bubble-blue,
+.plink-logo-bubble-yellow,
+.plink-logo-dot {
+  vector-effect: non-scaling-stroke;
+}
+
+.plink-logo-bubble-blue {
+  fill: #d9ecff;
+  stroke: #1f1f23;
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.plink-logo-bubble-yellow {
+  fill: var(--plink-yellow);
+  stroke: none;
+}
+
+.plink-logo-dot {
+  fill: var(--plink-coral);
+}
+
+.plink-logo-eye {
+  fill: var(--plink-text);
+}
+
+.plink-logo-smile {
+  fill: none;
+  stroke: var(--plink-text);
+  stroke-width: 3.8;
+  stroke-linecap: round;
+}
+
+.plink-logo-word {
+  color: var(--plink-text);
+  font-size: 42px;
+  font-weight: 1000;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.profile-brand {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+}
+
+.profile-brand p {
+  margin: 0;
+  color: var(--plink-subtext);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.profile-logo .plink-logo-mark {
+  width: 82px;
+}
+
+.profile-logo .plink-logo-word {
+  font-size: 56px;
+}
+
+.chat-title-block {
+  min-width: 0;
+}
+
+.chat-logo .plink-logo-mark {
+  width: 44px;
+}
+
+.chat-logo .plink-logo-word {
+  font-size: 32px;
+}
+
+.chat-room-name {
+  max-width: 220px;
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: var(--plink-subtext);
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-logo .plink-logo-mark {
+  width: 74px;
+}
+
+.empty-logo .plink-logo-word {
+  font-size: 48px;
+}
+
+body {
+  background:
+    radial-gradient(circle at 9% 12%, rgba(218, 233, 255, 0.68) 0 12%, transparent 24%),
+    radial-gradient(circle at 91% 7%, rgba(255, 234, 167, 0.74) 0 10%, transparent 22%),
+    linear-gradient(180deg, #fffaf0 0%, #fff7e1 46%, #f7fbff 100%);
+}
+
+button {
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+input::placeholder {
+  color: #9a95a0;
+}
+
+.app-shell {
+  gap: 18px;
+  padding: 18px;
+}
+
+.profile-card,
+.chat-view,
+.side-panel {
+  border: 1px solid rgba(234, 223, 202, 0.95);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--plink-shadow);
+}
+
+.chat-view,
+.side-panel {
+  border-radius: 28px;
+}
+
+.profile-card {
+  border-radius: 30px;
+  padding: 30px;
+}
+
+.profile-label {
+  border: 1px solid var(--plink-line);
+  background: var(--plink-blue);
+  color: var(--plink-text);
+  box-shadow: none;
+}
+
+.profile-field input,
+.photo-picker,
+.new-room-form,
+.composer input,
+.user-code-card {
+  border: 1px solid var(--plink-line);
+  background: var(--plink-surface);
+  color: var(--plink-text);
+}
+
+.profile-image-grid button {
+  border: 1px solid var(--plink-line);
+  background: var(--plink-surface);
+}
+
+.profile-image-grid button.selected {
+  border-color: #f0cc68;
+  background: var(--plink-yellow);
+}
+
+.photo-picker > span,
+.profile-pill span,
+.room-icon,
+.plan-room-switcher span,
+.avatar {
+  border: 1px solid rgba(31, 31, 35, 0.12);
+  background: var(--plink-blue);
+}
+
+.room-list {
+  border-right: 1px solid rgba(234, 223, 202, 0.9);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.7) 0 12%, transparent 24%),
+    linear-gradient(180deg, #fff3c7 0%, #fff7e1 100%);
+}
+
+.room-list-header p,
+.panel-heading h2,
+.card-title h3,
+.briefing-title h3,
+h1,
+h2,
+h3 {
+  color: var(--plink-text);
+  letter-spacing: 0;
+  text-shadow: none;
+}
+
+h1 {
+  gap: 4px;
+  font-size: 32px;
+  line-height: 1.04;
+}
+
+h1 em {
+  color: var(--plink-coral);
+  font-size: 27px;
+  font-style: normal;
+  text-shadow: none;
+}
+
+.eyebrow,
+.room-list-title small,
+.room-item small,
+.message-meta,
+.candidate-empty,
+.candidate-item small,
+.empty-chat p,
+.empty-panel p,
+.timeline-item input:first-child,
+.timeline-item input:nth-child(3),
+.budget-item span,
+.budget-item small,
+.member-item span,
+.decision-item small,
+.task-item small {
+  color: var(--plink-subtext);
+}
+
+.profile-pill,
+.room-item,
+.new-room-toggle,
+.header-meta,
+.chat-summary,
+.message-bubble,
+.extract-chip,
+.share-room-button,
+.inline-link-button,
+.panel-tabs button,
+.bottom-nav button,
+.segmented button,
+.plan-room-switcher button,
+.plan-card,
+.briefing-card,
+.day-brief,
+.share-briefing,
+.task-item,
+.decision-item,
+.budget-item,
+.member-item,
+.candidate-item,
+.candidate-actions button,
+.section-edit-button,
+.note-check-button,
+.note-icon-button,
+.note-confirm-button,
+.decision-item div span,
+.composer button,
+.profile-submit {
+  border-color: var(--plink-line);
+  box-shadow: none;
+}
+
+.profile-pill,
+.room-item,
+.plan-card,
+.task-item,
+.decision-item,
+.budget-item,
+.member-item,
+.candidate-item,
+.day-brief {
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--plink-shadow-soft);
+}
+
+.room-item {
+  border-radius: 22px;
+}
+
+.room-item.active {
+  border-color: rgba(255, 107, 74, 0.48);
+  background: #fff9ea;
+  box-shadow: 0 12px 26px rgba(255, 107, 74, 0.12);
+}
+
+.room-item.coral .room-icon,
+.room-item em {
+  background: var(--plink-coral);
+  color: #fff;
+}
+
+.room-item.yellow .room-icon,
+.message-bubble.mine,
+.plan-card.accent,
+.plan-room-switcher button.active,
+.extract-chip.task,
+.day-brief em,
+.decision-item div span {
+  background: var(--plink-yellow);
+}
+
+.new-room-toggle {
+  background: var(--plink-surface);
+  color: var(--plink-text);
+  box-shadow: var(--plink-shadow-soft);
+}
+
+.new-room-toggle:not(.compact),
+.profile-submit,
+.composer button,
+.candidate-actions button:first-child {
+  border-color: transparent;
+  background: var(--plink-coral);
+  color: #fff;
+}
+
+.chat-header {
+  border-bottom: 1px solid rgba(218, 233, 255, 0.95);
+  background:
+    radial-gradient(circle at 88% -12%, rgba(255, 234, 167, 0.9) 0 18%, transparent 34%),
+    linear-gradient(135deg, #eff7ff 0%, var(--plink-blue) 100%);
+}
+
+.header-meta {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.share-room-button {
+  background: #fff;
+  color: var(--plink-text);
+}
+
+.chat-summary {
+  border: 1px solid rgba(255, 234, 167, 0.95);
+  background: linear-gradient(135deg, var(--plink-yellow) 0%, #fff4c8 100%);
+  color: var(--plink-text);
+  box-shadow: var(--plink-shadow-soft);
+}
+
+.message-bubble {
+  border: 1px solid var(--plink-line);
+  border-radius: 24px 24px 24px 9px;
+  background: #fff;
+  color: var(--plink-text);
+  box-shadow: 0 10px 22px rgba(58, 44, 19, 0.07);
+}
+
+.message-bubble.mine {
+  border-radius: 24px 24px 9px 24px;
+}
+
+.message-action-button,
+.message-action-menu {
+  border-color: var(--plink-line);
+  background: #fff;
+}
+
+.message-action-button:hover,
+.message-action-button[aria-expanded='true'] {
+  background: var(--plink-text);
+  color: #fff;
+}
+
+.message-action-menu {
+  box-shadow: var(--plink-shadow-soft);
+}
+
+.extract-chip {
+  border-width: 1px;
+  color: var(--plink-text);
+}
+
+.extract-chip.schedule,
+.candidate-type.schedule,
+.briefing-card {
+  background: var(--plink-blue);
+}
+
+.extract-chip.decision,
+.candidate-type.decision,
+.candidate-type.insight {
+  background: var(--plink-coral-soft);
+}
+
+.extract-chip.budget,
+.candidate-type.budget {
+  background: #f5edff;
+}
+
+.composer {
+  border-top: 1px solid rgba(234, 223, 202, 0.9);
+  background: rgba(255, 247, 225, 0.92);
+}
+
+.composer input {
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.composer button {
+  box-shadow: 0 10px 20px rgba(255, 107, 74, 0.2);
+}
+
+.side-panel {
+  background: rgba(255, 253, 248, 0.9);
+}
+
+.panel-tabs {
+  background: linear-gradient(180deg, rgba(255, 253, 248, 0.96), rgba(255, 253, 248, 0.78));
+}
+
+.panel-tabs button,
+.bottom-nav button,
+.segmented button {
+  background: #fff;
+  color: var(--plink-text);
+}
+
+.panel-tabs button.active,
+.bottom-nav button.active,
+.segmented button.selected,
+.section-edit-button.active {
+  border-color: transparent;
+  background: var(--plink-text);
+  color: #fff;
+}
+
+.plan-card {
+  border-radius: 24px;
+}
+
+.briefing-card {
+  border-radius: 28px;
+  color: var(--plink-text);
+}
+
+.briefing-status span {
+  border-color: rgba(240, 204, 104, 0.72);
+  background: var(--plink-yellow);
+  color: var(--plink-text);
+}
+
+.share-briefing {
+  background: #fff8dc;
+}
+
+.candidate-type,
+.candidate-actions button,
+.section-edit-button,
+.note-confirm-button {
+  border-radius: 999px;
+}
+
+.candidate-type.task {
+  background: #e9f8dc;
+}
+
+.candidate-actions button,
+.section-edit-button,
+.note-check-button,
+.note-icon-button,
+.note-confirm-button {
+  background: #fff;
+  color: var(--plink-text);
+}
+
+.candidate-actions button.danger,
+.note-icon-button.danger {
+  color: #e2563b;
+}
+
+.timeline-item {
+  border-top: 1px dashed rgba(107, 107, 118, 0.24);
+}
+
+.timeline-item input,
+.task-item input,
+.decision-item input,
+.budget-item input {
+  border-color: #e8dfcf;
+  background: #fff;
+  color: var(--plink-text);
+}
+
+.timeline-item input:focus,
+.task-item input:focus,
+.decision-item input:focus,
+.budget-item input:focus {
+  border-color: rgba(255, 107, 74, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 107, 74, 0.12);
+}
+
+.timeline-item input:disabled,
+.task-item input:disabled,
+.decision-item input:disabled,
+.budget-item input:disabled {
+  background: transparent;
+}
+
+.bottom-nav {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 14px 34px rgba(63, 48, 23, 0.13);
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    background: linear-gradient(180deg, #fffaf0 0%, #fff7e1 100%);
+  }
+
+  .profile-logo .plink-logo-mark {
+    width: 64px;
+  }
+
+  .profile-logo .plink-logo-word {
+    font-size: 44px;
+  }
+
+  .chat-view,
+  .side-panel {
+    background: transparent;
+  }
+
+  .room-list {
+    background:
+      radial-gradient(circle at 12% 8%, rgba(218, 233, 255, 0.92) 0 13%, transparent 27%),
+      linear-gradient(180deg, #fffaf0 0%, var(--plink-cream) 100%);
+  }
+
+  .chat-header {
+    border-bottom: 1px solid rgba(218, 233, 255, 0.95);
+    background: linear-gradient(135deg, #f4f9ff 0%, var(--plink-blue) 100%);
+  }
+
+  .chat-logo {
+    gap: 6px;
+  }
+
+  .chat-logo .plink-logo-mark {
+    width: 36px;
+  }
+
+  .chat-logo .plink-logo-word {
+    font-size: 28px;
+  }
+
+  .chat-room-name {
+    max-width: 150px;
+    margin-top: 2px;
+    font-size: 12px;
+  }
+
+  .empty-logo .plink-logo-mark {
+    width: 62px;
+  }
+
+  .empty-logo .plink-logo-word {
+    font-size: 42px;
+  }
+
+  .mobile-back-button {
+    border: 1px solid var(--plink-line);
+    background: #fff;
+    color: var(--plink-text);
+  }
+
+  .share-room-button {
+    border-color: transparent;
+    background: var(--plink-coral);
+    color: #fff;
+  }
+
+  .composer {
+    background: rgba(255, 247, 225, 0.98);
+  }
+}

@@ -1,6 +1,7 @@
 import { ArrowLeft, CalendarDays, Link2, MessageCircle, MoreVertical, SendHorizontal, Sparkles } from 'lucide-react';
 import { FormEvent, MouseEvent, PointerEvent, useEffect, useRef, useState } from 'react';
 import { NewRoomForm } from './NewRoomForm';
+import { PlinkLogo } from './PlinkLogo';
 import type { ChatRoom, Message, MessageApplyTarget, Profile } from '../types';
 
 type ChatViewProps = {
@@ -21,6 +22,8 @@ const applyActions: { label: string; targetType: MessageApplyTarget }[] = [
   { label: '결정으로 반영', targetType: 'decision' },
   { label: '예산으로 반영', targetType: 'budget' },
 ];
+
+const displaySender = (sender: string) => (sender === 'PlanTalk' ? 'Plink' : sender);
 
 export function ChatView({
   activeRoom,
@@ -161,12 +164,10 @@ export function ChatView({
               <button aria-label="채팅방 목록으로 돌아가기" className="mobile-back-button" onClick={handleBackToRooms} type="button">
                 <ArrowLeft size={18} />
               </button>
-              <div>
+              <div className="chat-title-block">
                 <p className="eyebrow">{activeRoom.subtitle}</p>
-                <h1>
-                  <span>{activeRoom.destination}</span>
-                  <em>PlanTalk</em>
-                </h1>
+                <PlinkLogo className="chat-logo" />
+                <p className="chat-room-name">{activeRoom.destination}</p>
               </div>
               <div className="header-meta">
                 <CalendarDays size={18} />
@@ -180,7 +181,7 @@ export function ChatView({
 
             <div className="chat-summary">
               <Sparkles size={17} />
-              <span>{activeRoom.title} 계획 노트가 이 채팅방 기준으로 정리되고 있어요.</span>
+              <span>대화가 자연스럽게 일정, 할 일, 결정사항으로 정리되고 있어요.</span>
             </div>
 
             <div className="message-list">
@@ -196,7 +197,7 @@ export function ChatView({
                 >
                   {!message.mine && <div className="avatar">{message.initials}</div>}
                   <div className="message-stack">
-                    {!message.mine && <span className="sender">{message.sender}</span>}
+                    {!message.mine && <span className="sender">{displaySender(message.sender)}</span>}
                     <div className="message-action-line">
                       <div className={`message-bubble ${message.mine ? 'mine' : ''}`}>{message.text}</div>
                       <button
@@ -250,7 +251,7 @@ export function ChatView({
           </>
         ) : (
           <div className="empty-chat">
-            <Sparkles size={30} />
+            <PlinkLogo className="empty-logo" />
             <h1>새로운 계획 노트 만들기</h1>
             <p>첫 채팅방을 만들면 대화에서 일정, 할 일, 결정사항, 예산을 정리해드릴게요.</p>
             <NewRoomForm ctaLabel="새로운 계획 노트 만들기" onCreateRoom={handleCreateRoom} />

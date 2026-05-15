@@ -1,6 +1,7 @@
 import { Image, LogIn } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { createShareCode } from '../services/roomActions';
+import { PlinkLogo } from './PlinkLogo';
 import type { Profile } from '../types';
 
 type ProfileGateProps = {
@@ -45,10 +46,10 @@ export function ProfileGate({ onComplete }: ProfileGateProps) {
       <div className="plane-sticker" />
       <form className="profile-card" onSubmit={handleSubmit}>
         <span className="profile-label">여행방 입장 전</span>
-        <h1>
-          <span>프로필 설정</span>
-          <em>PlanTalk</em>
-        </h1>
+        <div className="profile-brand">
+          <PlinkLogo className="profile-logo" />
+          <p>같은 대화, 더 쉬운 계획</p>
+        </div>
         <label className="profile-field">
           <span>닉네임</span>
           <input value={nickname} onChange={(event) => setNickname(event.target.value)} maxLength={12} />
