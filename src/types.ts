@@ -67,3 +67,26 @@ export type Member = {
   initials: string;
   role: string;
 };
+
+export type ChatRoom = {
+  id: string;
+  title: string;
+  subtitle: string;
+  destination: string;
+  period: string;
+  coverTone: 'sky' | 'coral' | 'yellow';
+  unread: number;
+  lastMessage: string;
+  messages: Message[];
+  scheduleItems: ScheduleItem[];
+  tasks: TaskItem[];
+  decisions: DecisionItem[];
+  budgetItems: BudgetItem[];
+  finalPlan: FinalPlan;
+  members: Member[];
+};
+
+export type Profile = {
+  nickname: string;
+  image: string;
+};

@@ -1,56 +1,90 @@
-import { CalendarDays, SendHorizontal, Sparkles } from 'lucide-react';
-import type { Message } from '../types';
+import { CalendarDays, MessageCircle, SendHorizontal, Sparkles } from 'lucide-react';
+import type { ChatRoom, Profile } from '../types';
 
 type ChatViewProps = {
-  messages: Message[];
+  activeRoom: ChatRoom;
+  activeRoomId: string;
+  profile: Profile;
+  rooms: ChatRoom[];
+  onSelectRoom: (roomId: string) => void;
 };
 
-export function ChatView({ messages }: ChatViewProps) {
+export function ChatView({ activeRoom, activeRoomId, profile, rooms, onSelectRoom }: ChatViewProps) {
   return (
     <div className="chat-view">
-      <header className="chat-header">
-        <div>
-          <p className="eyebrow">친구들이랑 떠나는</p>
-          <h1>
-            <span>제주여행</span>
-            <em>PlanTalk</em>
-          </h1>
+      <aside className="room-list">
+        <div className="room-list-header">
+          <div className="profile-pill">
+            <span>{profile.image}</span>
+            <strong>{profile.nickname}</strong>
+          </div>
+          <p>채팅방</p>
         </div>
-        <div className="header-meta">
-          <CalendarDays size={18} />
-          <span>5월 24일~5월 26일</span>
+        <div className="room-items">
+          {rooms.map((room) => (
+            <button
+              className={`room-item ${activeRoomId === room.id ? 'active' : ''} ${room.coverTone}`}
+              key={room.id}
+              onClick={() => onSelectRoom(room.id)}
+              type="button"
+            >
+              <span className="room-icon">{room.destination.slice(0, 1)}</span>
+              <span>
+                <strong>{room.title}</strong>
+                <small>{room.lastMessage}</small>
+              </span>
+              {room.unread > 0 && <em>{room.unread}</em>}
+            </button>
+          ))}
         </div>
-      </header>
+      </aside>
 
-      <div className="chat-summary">
-        <Sparkles size={17} />
-        <span>대화에서 일정 3개, 할 일 4개, 결정사항 2개를 찾았어요.</span>
-      </div>
+      <section className="chat-main">
+        <header className="chat-header">
+          <div>
+            <p className="eyebrow">{activeRoom.subtitle}</p>
+            <h1>
+              <span>{activeRoom.destination}</span>
+              <em>PlanTalk</em>
+            </h1>
+          </div>
+          <div className="header-meta">
+            <CalendarDays size={18} />
+            <span>{activeRoom.period}</span>
+          </div>
+        </header>
 
-      <div className="message-list">
-        {messages.map((message) => (
-          <article className={`message-row ${message.mine ? 'mine' : ''}`} key={message.id}>
-            {!message.mine && <div className="avatar">{message.initials}</div>}
-            <div className="message-stack">
-              {!message.mine && <span className="sender">{message.sender}</span>}
-              <div className={`message-bubble ${message.mine ? 'mine' : ''}`}>{message.text}</div>
-              <div className="message-meta">
-                <span>{message.time}</span>
-                {message.extraction && (
-                  <span className={`extract-chip ${message.extraction.tone}`}>{message.extraction.label}</span>
-                )}
+        <div className="chat-summary">
+          <Sparkles size={17} />
+          <span>{activeRoom.title} 계획 노트가 이 채팅방 기준으로 정리되고 있어요.</span>
+        </div>
+
+        <div className="message-list">
+          {activeRoom.messages.map((message) => (
+            <article className={`message-row ${message.mine ? 'mine' : ''}`} key={message.id}>
+              {!message.mine && <div className="avatar">{message.initials}</div>}
+              <div className="message-stack">
+                {!message.mine && <span className="sender">{message.sender}</span>}
+                <div className={`message-bubble ${message.mine ? 'mine' : ''}`}>{message.text}</div>
+                <div className="message-meta">
+                  <span>{message.time}</span>
+                  {message.extraction && (
+                    <span className={`extract-chip ${message.extraction.tone}`}>{message.extraction.label}</span>
+                  )}
+                </div>
               </div>
-            </div>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
 
-      <form className="composer">
-        <input aria-label="메시지 입력" placeholder="메시지를 입력하세요" />
-        <button aria-label="메시지 보내기" type="button">
-          <SendHorizontal size={18} />
-        </button>
-      </form>
+        <form className="composer">
+          <MessageCircle size={18} />
+          <input aria-label="메시지 입력" placeholder={`${profile.nickname}님, 메시지를 입력하세요`} />
+          <button aria-label="메시지 보내기" type="button">
+            <SendHorizontal size={18} />
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

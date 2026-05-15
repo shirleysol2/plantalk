@@ -1,23 +1,52 @@
 import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, ListTodo, MapPinned, Send, Vote } from 'lucide-react';
-import type { BudgetItem, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
+import type { BudgetItem, ChatRoom, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
 
 type PlanNoteProps = {
+  room: ChatRoom;
+  rooms: ChatRoom[];
+  activeRoomId: string;
   finalPlan: FinalPlan;
   scheduleItems: ScheduleItem[];
   tasks: TaskItem[];
   decisions: DecisionItem[];
   budgetItems: BudgetItem[];
+  onSelectRoom: (roomId: string) => void;
   onToggleTask: (taskId: number) => void;
 };
 
-export function PlanNote({ finalPlan, scheduleItems, tasks, decisions, budgetItems, onToggleTask }: PlanNoteProps) {
+export function PlanNote({
+  room,
+  rooms,
+  activeRoomId,
+  finalPlan,
+  scheduleItems,
+  tasks,
+  decisions,
+  budgetItems,
+  onSelectRoom,
+  onToggleTask,
+}: PlanNoteProps) {
   const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
 
   return (
     <div className="plan-note">
       <div className="panel-heading">
         <p className="eyebrow">방금 정리된</p>
-        <h2>여행일정표</h2>
+        <h2>{room.destination} 일정표</h2>
+      </div>
+
+      <div className="plan-room-switcher" aria-label="계획 노트 채팅방 선택">
+        {rooms.map((item) => (
+          <button
+            className={activeRoomId === item.id ? 'active' : ''}
+            key={item.id}
+            onClick={() => onSelectRoom(item.id)}
+            type="button"
+          >
+            <span>{item.destination.slice(0, 1)}</span>
+            {item.title}
+          </button>
+        ))}
       </div>
 
       <section className="briefing-card">

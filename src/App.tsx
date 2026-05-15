@@ -3,24 +3,38 @@ import { BottomNav } from './components/BottomNav';
 import { ChatView } from './components/ChatView';
 import { PanelTabs } from './components/PanelTabs';
 import { PlanNote } from './components/PlanNote';
+import { ProfileGate } from './components/ProfileGate';
 import { SettingsView } from './components/SettingsView';
-import { budgetItems, decisions, finalPlan, members, messages, scheduleItems, summaryStyles, taskItems } from './data';
-import type { PanelId, TabId } from './types';
+import { chatRooms, summaryStyles } from './data';
+import type { PanelId, Profile, TabId, TaskItem } from './types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('chat');
   const [activePanel, setActivePanel] = useState<PanelId>('plan');
-  const [tasks, setTasks] = useState(taskItems);
+  const [activeRoomId, setActiveRoomId] = useState(chatRooms[0].id);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [tasksByRoom, setTasksByRoom] = useState<Record<string, TaskItem[]>>(() =>
+    Object.fromEntries(chatRooms.map((room) => [room.id, room.tasks])),
+  );
   const [summaryStyle, setSummaryStyle] = useState(summaryStyles[0]);
 
   const toggleTask = (taskId: number) => {
-    setTasks((current) =>
-      current.map((task) => (task.id === taskId ? { ...task, done: !task.done } : task)),
-    );
+    setTasksByRoom((current) => ({
+      ...current,
+      [activeRoomId]: current[activeRoomId].map((task) =>
+        task.id === taskId ? { ...task, done: !task.done } : task,
+      ),
+    }));
   };
 
+  const activeRoom = chatRooms.find((room) => room.id === activeRoomId) ?? chatRooms[0];
+  const activeTasks = tasksByRoom[activeRoom.id] ?? activeRoom.tasks;
   const showSettings = activeTab === 'settings' || (activeTab === 'chat' && activePanel === 'settings');
   const showPlan = activeTab === 'plan' || (activeTab === 'chat' && activePanel === 'plan');
+
+  if (!profile) {
+    return <ProfileGate onComplete={setProfile} />;
+  }
 
   return (
     <main className="app-shell">
@@ -28,7 +42,13 @@ export default function App() {
       <div className="sky-sticker cloud-two" />
       <div className="plane-sticker" />
       <section className={`chat-column ${activeTab === 'chat' ? 'is-active' : ''}`}>
-        <ChatView messages={messages} />
+        <ChatView
+          activeRoom={activeRoom}
+          activeRoomId={activeRoomId}
+          profile={profile}
+          rooms={chatRooms}
+          onSelectRoom={setActiveRoomId}
+        />
       </section>
 
       <aside className={`side-panel ${activeTab !== 'chat' ? 'is-active' : ''}`}>
@@ -36,7 +56,7 @@ export default function App() {
         <div className={showSettings ? 'panel-view' : 'panel-view is-hidden-mobile'}>
           {showSettings && (
             <SettingsView
-              members={members}
+              members={activeRoom.members}
               summaryStyles={summaryStyles}
               summaryStyle={summaryStyle}
               onSummaryStyleChange={setSummaryStyle}
@@ -46,11 +66,15 @@ export default function App() {
         <div className={showPlan ? 'panel-view' : 'panel-view is-hidden-mobile'}>
           {showPlan && (
             <PlanNote
-              finalPlan={finalPlan}
-              scheduleItems={scheduleItems}
-              tasks={tasks}
-              decisions={decisions}
-              budgetItems={budgetItems}
+              room={activeRoom}
+              rooms={chatRooms}
+              activeRoomId={activeRoomId}
+              finalPlan={activeRoom.finalPlan}
+              scheduleItems={activeRoom.scheduleItems}
+              tasks={activeTasks}
+              decisions={activeRoom.decisions}
+              budgetItems={activeRoom.budgetItems}
+              onSelectRoom={setActiveRoomId}
               onToggleTask={toggleTask}
             />
           )}

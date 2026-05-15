@@ -1,13 +1,13 @@
-import type { BudgetItem, DecisionItem, FinalPlan, Member, Message, ScheduleItem, TaskItem } from './types';
+import type { ChatRoom } from './types';
 
-export const messages: Message[] = [
+const jejuMessages = [
   {
     id: 1,
     sender: '민지',
     initials: '민',
     time: '오전 10:12',
     text: '제주 2박 3일이면 금요일 밤 비행기 타고 일요일 저녁에 돌아오는 게 제일 낫지 않아?',
-    extraction: { label: '일정 후보', tone: 'schedule' },
+    extraction: { label: '일정 후보', tone: 'schedule' as const },
   },
   {
     id: 2,
@@ -16,7 +16,7 @@ export const messages: Message[] = [
     time: '오전 10:14',
     text: '좋아. 그럼 이번 주 금요일 밤 항공권부터 찾아볼게.',
     mine: true,
-    extraction: { label: '할 일 생성', tone: 'task' },
+    extraction: { label: '할 일 생성', tone: 'task' as const },
   },
   {
     id: 3,
@@ -24,7 +24,7 @@ export const messages: Message[] = [
     initials: '지',
     time: '오전 10:18',
     text: '숙소는 제주시 쪽이 편할까? 아니면 서귀포 쪽이 동선 예쁠 것 같기도 해.',
-    extraction: { label: '결정 필요', tone: 'decision' },
+    extraction: { label: '결정 필요', tone: 'decision' as const },
   },
   {
     id: 4,
@@ -32,7 +32,7 @@ export const messages: Message[] = [
     initials: '현',
     time: '오전 10:21',
     text: '렌트까지 하면 1인 40만원 초반 정도로 잡으면 될 듯!',
-    extraction: { label: '예산 업데이트', tone: 'budget' },
+    extraction: { label: '예산 업데이트', tone: 'budget' as const },
   },
   {
     id: 5,
@@ -41,7 +41,7 @@ export const messages: Message[] = [
     time: '오전 10:25',
     text: '일요일까지 숙소 위치 정하고, 동쪽 코스 맛집 후보도 같이 모아보자.',
     mine: true,
-    extraction: { label: '마감 추가', tone: 'schedule' },
+    extraction: { label: '마감 추가', tone: 'schedule' as const },
   },
   {
     id: 6,
@@ -49,72 +49,239 @@ export const messages: Message[] = [
     initials: 'P',
     time: '오전 11:02',
     text: '제주 2박 3일 일정이 확정됐어요. Day별 브리핑과 준비 체크리스트를 계획 노트에 정리했어요.',
-    extraction: { label: '확정 브리핑', tone: 'schedule' },
+    extraction: { label: '확정 브리핑', tone: 'schedule' as const },
   },
 ];
 
-export const scheduleItems: ScheduleItem[] = [
-  { id: 1, date: 'Day 1', title: '제주시 도착, 동문시장 저녁', status: '확정' },
-  { id: 2, date: 'Day 2', title: '성산 일출봉, 우도, 월정리', status: '확정' },
-  { id: 3, date: 'Day 3', title: '애월 카페, 공항 복귀', status: '확정' },
-];
-
-export const taskItems: TaskItem[] = [
-  { id: 1, title: '항공권 예약 캡처 공유', owner: '나', done: true },
-  { id: 2, title: '렌트카 가격 확인', owner: '현', done: true },
-  { id: 3, title: '숙소 체크인 정보 저장', owner: '지수', done: true },
-  { id: 4, title: '동쪽 맛집 예약 가능 여부 확인', owner: '민지', done: false },
-];
-
-export const decisions: DecisionItem[] = [
-  { id: 1, question: '숙소 위치', options: ['제주시'], state: '확정' },
-  { id: 2, question: '이동 방식', options: ['렌트카'], state: '확정' },
-];
-
-export const budgetItems: BudgetItem[] = [
-  { id: 1, category: '항공', amount: '160,000원', note: '금요일 밤 출발 기준' },
-  { id: 2, category: '숙소', amount: '140,000원', note: '2박 4인 분할' },
-  { id: 3, category: '렌트', amount: '70,000원', note: '보험 포함 예상' },
-  { id: 4, category: '식비', amount: '55,000원', note: '카페 포함 여유분' },
-];
-
-export const members: Member[] = [
-  { id: 1, name: '나', initials: '나', role: '계획 정리' },
-  { id: 2, name: '민지', initials: '민', role: '맛집 담당' },
-  { id: 3, name: '지수', initials: '지', role: '숙소 담당' },
-  { id: 4, name: '현', initials: '현', role: '이동 담당' },
+export const chatRooms: ChatRoom[] = [
+  {
+    id: 'jeju',
+    title: '제주 2박 3일',
+    subtitle: '친구들이랑 떠나는',
+    destination: '제주여행',
+    period: '5월 24일~5월 26일',
+    coverTone: 'sky',
+    unread: 2,
+    lastMessage: '확정 일정 브리핑이 만들어졌어요.',
+    messages: jejuMessages,
+    scheduleItems: [
+      { id: 1, date: 'Day 1', title: '제주시 도착, 동문시장 저녁', status: '확정' },
+      { id: 2, date: 'Day 2', title: '성산 일출봉, 우도, 월정리', status: '확정' },
+      { id: 3, date: 'Day 3', title: '애월 카페, 공항 복귀', status: '확정' },
+    ],
+    tasks: [
+      { id: 1, title: '항공권 예약 캡처 공유', owner: '나', done: true },
+      { id: 2, title: '렌트카 가격 확인', owner: '현', done: true },
+      { id: 3, title: '숙소 체크인 정보 저장', owner: '지수', done: true },
+      { id: 4, title: '동쪽 맛집 예약 가능 여부 확인', owner: '민지', done: false },
+    ],
+    decisions: [
+      { id: 1, question: '숙소 위치', options: ['제주시'], state: '확정' },
+      { id: 2, question: '이동 방식', options: ['렌트카'], state: '확정' },
+    ],
+    budgetItems: [
+      { id: 1, category: '항공', amount: '160,000원', note: '금요일 밤 출발 기준' },
+      { id: 2, category: '숙소', amount: '140,000원', note: '2박 4인 분할' },
+      { id: 3, category: '렌트', amount: '70,000원', note: '보험 포함 예상' },
+      { id: 4, category: '식비', amount: '55,000원', note: '카페 포함 여유분' },
+    ],
+    finalPlan: {
+      title: '제주 2박 3일 확정 일정',
+      period: '5월 24일 금요일 - 5월 26일 일요일',
+      members: '4명',
+      status: '확정',
+      summary: '제주시 숙소를 거점으로 첫날은 가볍게 도착, 둘째 날은 동쪽 코스 집중, 마지막 날은 애월에서 천천히 마무리하는 일정이에요.',
+      shareText: '금 밤 제주 도착 → 토 동쪽 코스 → 일 애월 카페 후 복귀. 1인 예상 425,000원, 렌트카 이동으로 확정!',
+      days: [
+        {
+          id: 1,
+          day: 'Day 1',
+          title: '도착과 체크인',
+          route: '제주공항 → 렌트카 픽업 → 제주시 숙소 → 동문시장',
+          highlights: ['20:10 제주 도착', '21:00 숙소 체크인', '동문시장 야식'],
+        },
+        {
+          id: 2,
+          day: 'Day 2',
+          title: '동쪽 코스',
+          route: '성산 일출봉 → 우도 → 월정리 → 제주시',
+          highlights: ['성산 브런치', '우도 반나절', '월정리 카페'],
+        },
+        {
+          id: 3,
+          day: 'Day 3',
+          title: '느린 마무리',
+          route: '애월 해안도로 → 카페 → 제주공항',
+          highlights: ['11:00 체크아웃', '애월 카페', '18:30 김포행'],
+        },
+      ],
+    },
+    members: [
+      { id: 1, name: '나', initials: '나', role: '계획 정리' },
+      { id: 2, name: '민지', initials: '민', role: '맛집 담당' },
+      { id: 3, name: '지수', initials: '지', role: '숙소 담당' },
+      { id: 4, name: '현', initials: '현', role: '이동 담당' },
+    ],
+  },
+  {
+    id: 'bangkok',
+    title: '방콕 여름휴가',
+    subtitle: '초고속으로 떠나는',
+    destination: 'Bangkok',
+    period: '7월 28일~8월 1일',
+    coverTone: 'coral',
+    unread: 5,
+    lastMessage: '야시장 루트만 정하면 거의 끝!',
+    messages: [
+      {
+        id: 1,
+        sender: '소라',
+        initials: '소',
+        time: '오후 2:10',
+        text: '방콕은 첫날 마사지 받고 바로 야시장 가는 코스 어때?',
+        extraction: { label: '일정 후보', tone: 'schedule' as const },
+      },
+      {
+        id: 2,
+        sender: '나',
+        initials: '나',
+        time: '오후 2:14',
+        text: '좋아. 숙소는 아속 근처로 잡으면 BTS 이동 편할 듯!',
+        mine: true,
+        extraction: { label: '숙소 조건', tone: 'decision' as const },
+      },
+      {
+        id: 3,
+        sender: '유진',
+        initials: '유',
+        time: '오후 2:21',
+        text: '쿠킹 클래스 하루 넣고 싶어. 토요일 오전 가능할까?',
+        extraction: { label: '예약 후보', tone: 'task' as const },
+      },
+    ],
+    scheduleItems: [
+      { id: 1, date: 'Day 1', title: '도착, 마사지, 야시장', status: '확정' },
+      { id: 2, date: 'Day 2', title: '왕궁, 왓아룬, 차오프라야', status: '조율 중' },
+      { id: 3, date: 'Day 3', title: '쿠킹 클래스와 카페', status: '예약 필요' },
+    ],
+    tasks: [
+      { id: 1, title: '아속 근처 숙소 3개 비교', owner: '나', done: false },
+      { id: 2, title: '쿠킹 클래스 예약 가능 시간 확인', owner: '유진', done: false },
+      { id: 3, title: '야시장 후보 저장', owner: '소라', done: true },
+    ],
+    decisions: [
+      { id: 1, question: '숙소 지역', options: ['아속', '시암'], state: '아속 우세' },
+      { id: 2, question: '공항 이동', options: ['그랩', '공항철도'], state: '결정 전' },
+    ],
+    budgetItems: [
+      { id: 1, category: '항공', amount: '310,000원', note: '왕복 특가 기준' },
+      { id: 2, category: '숙소', amount: '180,000원', note: '4박 분할' },
+      { id: 3, category: '투어', amount: '90,000원', note: '쿠킹 클래스 포함' },
+      { id: 4, category: '식비', amount: '120,000원', note: '야시장 여유분' },
+    ],
+    finalPlan: {
+      title: '방콕 여름휴가 일정 초안',
+      period: '7월 28일 월요일 - 8월 1일 금요일',
+      members: '3명',
+      status: '작성 중',
+      summary: '아속 근처 숙소를 기준으로 야시장, 사원 투어, 쿠킹 클래스를 엮는 휴가 일정이에요. 숙소와 공항 이동만 결정하면 확정할 수 있어요.',
+      shareText: '방콕은 아속 숙소 기준으로 야시장 → 왕궁/왓아룬 → 쿠킹 클래스 흐름으로 정리 중!',
+      days: [
+        {
+          id: 1,
+          day: 'Day 1',
+          title: '도착과 야시장',
+          route: '수완나품공항 → 아속 숙소 → 조드페어',
+          highlights: ['공항 이동', '타이 마사지', '야시장 저녁'],
+        },
+        {
+          id: 2,
+          day: 'Day 2',
+          title: '방콕 클래식',
+          route: '왕궁 → 왓아룬 → 차오프라야 강변',
+          highlights: ['왕궁 오전', '왓아룬 노을', '강변 저녁'],
+        },
+      ],
+    },
+    members: [
+      { id: 1, name: '나', initials: '나', role: '숙소 담당' },
+      { id: 2, name: '소라', initials: '소', role: '맛집 담당' },
+      { id: 3, name: '유진', initials: '유', role: '투어 담당' },
+    ],
+  },
+  {
+    id: 'osaka',
+    title: '오사카 먹방투어',
+    subtitle: '주말에 가볍게',
+    destination: 'Osaka',
+    period: '9월 6일~9월 8일',
+    coverTone: 'yellow',
+    unread: 0,
+    lastMessage: '라멘 후보는 셋 다 저장 완료.',
+    messages: [
+      {
+        id: 1,
+        sender: '준',
+        initials: '준',
+        time: '오후 8:04',
+        text: '오사카는 도톤보리 첫날 밤에 바로 가야지.',
+        extraction: { label: '일정 후보', tone: 'schedule' as const },
+      },
+      {
+        id: 2,
+        sender: '나',
+        initials: '나',
+        time: '오후 8:09',
+        text: '둘째 날은 교토까지 갈지, 오사카 안에서 먹방만 할지 정하자.',
+        mine: true,
+        extraction: { label: '결정 필요', tone: 'decision' as const },
+      },
+    ],
+    scheduleItems: [
+      { id: 1, date: 'Day 1', title: '난바 도착, 도톤보리', status: '확정' },
+      { id: 2, date: 'Day 2', title: '교토 당일치기 또는 오사카 맛집', status: '결정 필요' },
+    ],
+    tasks: [
+      { id: 1, title: '라멘 후보 저장', owner: '준', done: true },
+      { id: 2, title: '유니버설 티켓 가격 확인', owner: '나', done: false },
+    ],
+    decisions: [
+      { id: 1, question: '둘째 날 코스', options: ['교토', '오사카'], state: '투표 대기' },
+    ],
+    budgetItems: [
+      { id: 1, category: '항공', amount: '220,000원', note: '주말 왕복' },
+      { id: 2, category: '숙소', amount: '110,000원', note: '난바 2박' },
+      { id: 3, category: '식비', amount: '95,000원', note: '먹방 중심' },
+    ],
+    finalPlan: {
+      title: '오사카 먹방투어 계획',
+      period: '9월 6일 금요일 - 9월 8일 일요일',
+      members: '2명',
+      status: '거의 확정',
+      summary: '난바 숙소를 기준으로 도톤보리와 맛집을 촘촘히 넣은 주말 여행이에요. 둘째 날 교토 여부만 정하면 됩니다.',
+      shareText: '오사카는 난바 숙소, 도톤보리 첫날 밤, 둘째 날 교토 여부만 투표하면 끝!',
+      days: [
+        {
+          id: 1,
+          day: 'Day 1',
+          title: '난바와 도톤보리',
+          route: '간사이공항 → 난바 → 도톤보리',
+          highlights: ['라피트 이동', '타코야키', '글리코상'],
+        },
+        {
+          id: 2,
+          day: 'Day 2',
+          title: '선택 코스',
+          route: '교토 당일치기 또는 오사카 맛집 집중',
+          highlights: ['투표 필요', '라멘 후보', '카페 저장'],
+        },
+      ],
+    },
+    members: [
+      { id: 1, name: '나', initials: '나', role: '티켓 담당' },
+      { id: 2, name: '준', initials: '준', role: '맛집 담당' },
+    ],
+  },
 ];
 
 export const summaryStyles = ['꼼꼼하게', '짧고 빠르게', '결정사항 위주'];
-
-export const finalPlan: FinalPlan = {
-  title: '제주 2박 3일 확정 일정',
-  period: '5월 24일 금요일 - 5월 26일 일요일',
-  members: '4명',
-  status: '확정',
-  summary: '제주시 숙소를 거점으로 첫날은 가볍게 도착, 둘째 날은 동쪽 코스 집중, 마지막 날은 애월에서 천천히 마무리하는 일정이에요.',
-  shareText: '금 밤 제주 도착 → 토 동쪽 코스 → 일 애월 카페 후 복귀. 1인 예상 425,000원, 렌트카 이동으로 확정!',
-  days: [
-    {
-      id: 1,
-      day: 'Day 1',
-      title: '도착과 체크인',
-      route: '제주공항 → 렌트카 픽업 → 제주시 숙소 → 동문시장',
-      highlights: ['20:10 제주 도착', '21:00 숙소 체크인', '동문시장 야식'],
-    },
-    {
-      id: 2,
-      day: 'Day 2',
-      title: '동쪽 코스',
-      route: '성산 일출봉 → 우도 → 월정리 → 제주시',
-      highlights: ['성산 브런치', '우도 반나절', '월정리 카페'],
-    },
-    {
-      id: 3,
-      day: 'Day 3',
-      title: '느린 마무리',
-      route: '애월 해안도로 → 카페 → 제주공항',
-      highlights: ['11:00 체크아웃', '애월 카페', '18:30 김포행'],
-    },
-  ],
-};
