@@ -16,8 +16,8 @@ export function PlanNote({ finalPlan, scheduleItems, tasks, decisions, budgetIte
   return (
     <div className="plan-note">
       <div className="panel-heading">
-        <p className="eyebrow">계획 노트</p>
-        <h2>대화에서 정리된 계획</h2>
+        <p className="eyebrow">방금 정리된</p>
+        <h2>여행일정표</h2>
       </div>
 
       <section className="briefing-card">

@@ -10,12 +10,15 @@ export function ChatView({ messages }: ChatViewProps) {
     <div className="chat-view">
       <header className="chat-header">
         <div>
-          <p className="eyebrow">PlanTalk</p>
-          <h1>제주 2박 3일</h1>
+          <p className="eyebrow">친구들이랑 떠나는</p>
+          <h1>
+            <span>제주여행</span>
+            <em>PlanTalk</em>
+          </h1>
         </div>
         <div className="header-meta">
           <CalendarDays size={18} />
-          <span>4명 · 계획 생성 중</span>
+          <span>5월 24일~5월 26일</span>
         </div>
       </header>
 

@@ -19,16 +19,22 @@ export default function App() {
     );
   };
 
+  const showSettings = activeTab === 'settings' || (activeTab === 'chat' && activePanel === 'settings');
+  const showPlan = activeTab === 'plan' || (activeTab === 'chat' && activePanel === 'plan');
+
   return (
     <main className="app-shell">
+      <div className="sky-sticker cloud-one" />
+      <div className="sky-sticker cloud-two" />
+      <div className="plane-sticker" />
       <section className={`chat-column ${activeTab === 'chat' ? 'is-active' : ''}`}>
         <ChatView messages={messages} />
       </section>
 
       <aside className={`side-panel ${activeTab !== 'chat' ? 'is-active' : ''}`}>
         <PanelTabs activePanel={activePanel} onChange={setActivePanel} />
-        <div className={activeTab === 'settings' || activePanel === 'settings' ? 'panel-view' : 'panel-view is-hidden-mobile'}>
-          {(activeTab === 'settings' || activePanel === 'settings') && (
+        <div className={showSettings ? 'panel-view' : 'panel-view is-hidden-mobile'}>
+          {showSettings && (
             <SettingsView
               members={members}
               summaryStyles={summaryStyles}
@@ -37,8 +43,8 @@ export default function App() {
             />
           )}
         </div>
-        <div className={activeTab === 'plan' || activePanel === 'plan' ? 'panel-view' : 'panel-view is-hidden-mobile'}>
-          {(activeTab === 'plan' || activePanel === 'plan') && (
+        <div className={showPlan ? 'panel-view' : 'panel-view is-hidden-mobile'}>
+          {showPlan && (
             <PlanNote
               finalPlan={finalPlan}
               scheduleItems={scheduleItems}
