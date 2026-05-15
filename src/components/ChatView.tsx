@@ -2,6 +2,7 @@ import { ArrowLeft, CalendarDays, Link2, MessageCircle, MoreVertical, SendHorizo
 import { FormEvent, MouseEvent, PointerEvent, useEffect, useRef, useState } from 'react';
 import { NewRoomForm } from './NewRoomForm';
 import { PlinkLogo } from './PlinkLogo';
+import { isMessageMineForUser } from '../services/roomActions';
 import type { ChatRoom, Message, MessageApplyTarget, Profile } from '../types';
 
 type ChatViewProps = {
@@ -185,55 +186,59 @@ export function ChatView({
             </div>
 
             <div className="message-list">
-              {activeRoom.messages.map((message) => (
-                <article
-                  className={`message-row ${message.mine ? 'mine' : ''}`}
-                  key={message.id}
-                  onContextMenu={(event) => handleMessageContextMenu(event, message.id)}
-                  onPointerCancel={clearLongPressTimer}
-                  onPointerDown={(event) => handlePointerDown(event, message.id)}
-                  onPointerLeave={clearLongPressTimer}
-                  onPointerUp={clearLongPressTimer}
-                >
-                  {!message.mine && <div className="avatar">{message.initials}</div>}
-                  <div className="message-stack">
-                    {!message.mine && <span className="sender">{displaySender(message.sender)}</span>}
-                    <div className="message-action-line">
-                      <div className={`message-bubble ${message.mine ? 'mine' : ''}`}>{message.text}</div>
-                      <button
-                        aria-expanded={openActionMessageId === message.id}
-                        aria-haspopup="menu"
-                        aria-label="메시지 반영 메뉴"
-                        className="message-action-button"
-                        onClick={() => handleOpenActionMenu(message.id)}
-                        type="button"
-                      >
-                        <MoreVertical size={15} />
-                      </button>
-                      {openActionMessageId === message.id && (
-                        <div className="message-action-menu" role="menu">
-                          {applyActions.map((action) => (
-                            <button
-                              key={action.targetType}
-                              onClick={() => handleApplyMessage(message, action.targetType)}
-                              role="menuitem"
-                              type="button"
-                            >
-                              {action.label}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+              {activeRoom.messages.map((message) => {
+                const isMine = isMessageMineForUser(message, profile);
+
+                return (
+                  <article
+                    className={`message-row ${isMine ? 'mine' : ''}`}
+                    key={message.id}
+                    onContextMenu={(event) => handleMessageContextMenu(event, message.id)}
+                    onPointerCancel={clearLongPressTimer}
+                    onPointerDown={(event) => handlePointerDown(event, message.id)}
+                    onPointerLeave={clearLongPressTimer}
+                    onPointerUp={clearLongPressTimer}
+                  >
+                    {!isMine && <div className="avatar">{message.initials}</div>}
+                    <div className="message-stack">
+                      {!isMine && <span className="sender">{displaySender(message.sender)}</span>}
+                      <div className="message-action-line">
+                        <div className={`message-bubble ${isMine ? 'mine' : ''}`}>{message.text}</div>
+                        <button
+                          aria-expanded={openActionMessageId === message.id}
+                          aria-haspopup="menu"
+                          aria-label="메시지 반영 메뉴"
+                          className="message-action-button"
+                          onClick={() => handleOpenActionMenu(message.id)}
+                          type="button"
+                        >
+                          <MoreVertical size={15} />
+                        </button>
+                        {openActionMessageId === message.id && (
+                          <div className="message-action-menu" role="menu">
+                            {applyActions.map((action) => (
+                              <button
+                                key={action.targetType}
+                                onClick={() => handleApplyMessage(message, action.targetType)}
+                                role="menuitem"
+                                type="button"
+                              >
+                                {action.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="message-meta">
+                        <span>{message.time}</span>
+                        {message.extraction && (
+                          <span className={`extract-chip ${message.extraction.tone}`}>{message.extraction.label}</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="message-meta">
-                      <span>{message.time}</span>
-                      {message.extraction && (
-                        <span className={`extract-chip ${message.extraction.tone}`}>{message.extraction.label}</span>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
 
             <form className="composer" onSubmit={handleSubmit}>

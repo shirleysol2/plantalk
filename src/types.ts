@@ -5,6 +5,7 @@ export type PanelId = 'plan' | 'settings';
 export type Message = {
   id: number;
   sender: string;
+  senderUserCode?: string;
   initials: string;
   time: string;
   text: string;
@@ -33,6 +34,7 @@ export type AnalyzeMessageInput = {
   message: Message;
   destination: string;
   nickname: string;
+  summaryStyle?: string;
 };
 
 export type ScheduleItem = {

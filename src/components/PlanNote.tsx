@@ -40,6 +40,7 @@ type PlanNoteProps = {
   onConfirmAnalysisCandidate?: (candidateId: number) => void;
   onHoldAnalysisCandidate?: (candidateId: number) => void;
   onDeleteAnalysisCandidate?: (candidateId: number) => void;
+  onAnalyzeRoom?: () => void;
 };
 
 type EditableSection = 'schedule' | 'tasks' | 'decisions' | 'budget';
@@ -68,6 +69,7 @@ export function PlanNote({
   onConfirmAnalysisCandidate,
   onHoldAnalysisCandidate,
   onDeleteAnalysisCandidate,
+  onAnalyzeRoom,
 }: PlanNoteProps) {
   const [editingSections, setEditingSections] = useState<Record<EditableSection, boolean>>({
     schedule: false,
@@ -157,6 +159,9 @@ export function PlanNote({
           <Sparkles size={18} />
           <h3>분석 후보</h3>
           <span className="candidate-count">{openCandidates.length}</span>
+          <button className="analysis-run-button" onClick={onAnalyzeRoom} type="button">
+            AI 분석
+          </button>
         </div>
         <div className="candidate-list">
           {openCandidates.length === 0 && <p className="candidate-empty">새로 검토할 후보가 없습니다.</p>}

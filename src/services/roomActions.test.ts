@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   addMessageToRoom,
+  analyzeRoomConversation,
   applyMessageToRoom,
   confirmAnalysisCandidate,
   createRoom,
   deleteAnalysisCandidate,
   getInitials,
   holdAnalysisCandidate,
+  isMessageMineForUser,
 } from './roomActions';
 import { analyzeMessageWithLocalAgent } from './planAnalysisAgent';
 import type { AnalysisCandidate, Message } from '../types';
@@ -105,11 +107,14 @@ describe('room actions', () => {
 
     const updated = addMessageToRoom(room, {
       nickname: '솔',
+      userCode: 'user_abc123',
       text: '토요일 10시에 기차 예약하고 숙소는 해운대로 확정하자. 예산은 1인 200000원 정도!',
     });
 
     expect(updated.messages).toHaveLength(2);
-    expect(updated.messages[1].mine).toBe(true);
+    expect(updated.messages[1].senderUserCode).toBe('user_abc123');
+    expect(isMessageMineForUser(updated.messages[1], { nickname: '솔', userCode: 'user_abc123' })).toBe(true);
+    expect(isMessageMineForUser(updated.messages[1], { nickname: '민지', userCode: 'user_other' })).toBe(false);
     expect(updated.finalPlan.status).toBe('검토 중');
     expect(updated.analysisCandidates).toEqual(
       expect.arrayContaining([
@@ -136,6 +141,7 @@ describe('room actions', () => {
 
     const updated = addMessageToRoom(room, {
       nickname: '솔',
+      userCode: 'user_abc123',
       text: '기차 예약 완료했고 숙소는 해운대로 확정했어.',
     });
 
@@ -160,6 +166,7 @@ describe('room actions', () => {
 
     const updated = addMessageToRoom(room, {
       nickname: '솔',
+      userCode: 'user_abc123',
       text: '토요일 3시로 일정 변경하자.',
     });
 
@@ -220,7 +227,7 @@ describe('analysis candidate actions', () => {
       status: 'pending',
     });
 
-    const updated = confirmAnalysisCandidate(room, { candidateId: 1, nickname: '지수' });
+    const updated = confirmAnalysisCandidate(room, { candidateId: 1, nickname: '지수', summaryStyle: '꼼꼼하게' });
 
     expect(updated.scheduleItems).toContainEqual(
       expect.objectContaining({
@@ -229,8 +236,36 @@ describe('analysis candidate actions', () => {
       }),
     );
     expect(updated.analysisCandidates[0]).toEqual(expect.objectContaining({ status: 'confirmed' }));
-    expect(updated.finalPlan.summary).toContain('일정');
+    expect(updated.finalPlan.summary).toContain('토요일 오전 성산일출봉');
+    expect(updated.finalPlan.days).toContainEqual(
+      expect.objectContaining({
+        title: '토요일 오전 성산일출봉',
+        route: expect.stringContaining('일정 후보'),
+        highlights: expect.arrayContaining(['일정']),
+      }),
+    );
     expect(updated.finalPlan.shareText).toContain('계획 업데이트');
+  });
+
+  it('uses the selected AI summary style when generating the briefing', () => {
+    const room = roomWithCandidate({
+      id: 1,
+      type: 'decision',
+      title: '숙소 선택',
+      detail: '확정 가능한 결정 후보',
+      sourceMessageId: 2,
+      sourceText: '숙소는 해운대로 확정했어',
+      status: 'pending',
+    });
+
+    const updated = confirmAnalysisCandidate(room, {
+      candidateId: 1,
+      nickname: '지수',
+      summaryStyle: '결정사항 위주',
+    });
+
+    expect(updated.finalPlan.summary).toContain('결정된 내용');
+    expect(updated.finalPlan.shareText).toContain('결정사항');
   });
 
   it('confirms task, decision, insight, and budget candidates into matching plan sections', () => {
@@ -320,5 +355,61 @@ describe('analysis candidate actions', () => {
     expect(deleted.analysisCandidates).toHaveLength(0);
     expect(deleted.finalPlan.status).toBe('작성 중');
     expect(deleted.tasks).toHaveLength(room.tasks.length);
+  });
+
+  it('analyzes the whole conversation on demand with the selected AI summary style', () => {
+    const room = {
+      ...createRoom({
+        title: '제주 준비',
+        destination: '제주',
+        period: '5월 20일-22일',
+        nickname: '지수',
+        userCode: 'user_1',
+      }),
+      messages: [
+        {
+          id: 1,
+          sender: '민지',
+          senderUserCode: 'user_2',
+          initials: '민',
+          time: '오후 2:10',
+          text: '토요일 오전에는 성산일출봉 가고 렌트카 120,000원 확인하자',
+        },
+      ],
+      analysisCandidates: [],
+    };
+
+    const updated = analyzeRoomConversation(room, {
+      nickname: '지수',
+      summaryStyle: '짧고 빠르게',
+    });
+
+    expect(updated.analysisCandidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'schedule', sourceMessageId: 1 }),
+        expect.objectContaining({ type: 'budget', sourceMessageId: 1 }),
+      ]),
+    );
+    expect(updated.finalPlan.summary).toContain('후보');
+  });
+
+  it('rebuilds an existing confirmed briefing when the AI summary style changes', () => {
+    const room = roomWithCandidate({
+      id: 1,
+      type: 'decision',
+      title: '숙소 선택',
+      detail: '확정 가능한 결정 후보',
+      sourceMessageId: 2,
+      sourceText: '숙소는 해운대로 확정했어',
+      status: 'pending',
+    });
+    const confirmed = confirmAnalysisCandidate(room, { candidateId: 1, nickname: '지수', summaryStyle: '꼼꼼하게' });
+
+    const updated = analyzeRoomConversation(confirmed, {
+      nickname: '지수',
+      summaryStyle: '결정사항 위주',
+    });
+
+    expect(updated.finalPlan.summary).toContain('결정된 내용');
   });
 });

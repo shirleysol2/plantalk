@@ -1098,6 +1098,17 @@ h3 {
   font-weight: 1000;
 }
 
+.analysis-run-button {
+  min-height: 30px;
+  border: 2px solid var(--plink-line);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: var(--plink-coral);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 1000;
+}
+
 .candidate-list {
   display: grid;
   gap: 10px;

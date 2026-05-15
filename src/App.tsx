@@ -8,6 +8,7 @@ import { SettingsView } from './components/SettingsView';
 import { chatRooms, summaryStyles } from './data';
 import {
   addMessageToRoom,
+  analyzeRoomConversation,
   applyMessageToRoom,
   confirmAnalysisCandidate,
   createRoom,
@@ -178,13 +179,15 @@ export default function App() {
 
   const handleSendMessage = (text: string) => {
     if (!profile || !activeRoomId) return;
-    updateActiveRoom((room) => addMessageToRoom(room, { nickname: profile.nickname, text }));
+    updateActiveRoom((room) =>
+      addMessageToRoom(room, { nickname: profile.nickname, userCode: profile.userCode, text, summaryStyle }),
+    );
   };
 
   const handleApplyMessage = (message: Message, target: MessageApplyTarget) => {
     if (!profile) return;
 
-    updateActiveRoom((room) => applyMessageToRoom(room, { message, target, nickname: profile.nickname }));
+    updateActiveRoom((room) => applyMessageToRoom(room, { message, target, nickname: profile.nickname, summaryStyle }));
     logInfo({
       action: 'message_applied',
       userCode: profile.userCode,
@@ -195,7 +198,7 @@ export default function App() {
 
   const handleConfirmAnalysisCandidate = (candidateId: number) => {
     if (!profile) return;
-    updateActiveRoom((room) => confirmAnalysisCandidate(room, { candidateId, nickname: profile.nickname }));
+    updateActiveRoom((room) => confirmAnalysisCandidate(room, { candidateId, nickname: profile.nickname, summaryStyle }));
   };
 
   const handleHoldAnalysisCandidate = (candidateId: number) => {
@@ -204,6 +207,17 @@ export default function App() {
 
   const handleDeleteAnalysisCandidate = (candidateId: number) => {
     updateActiveRoom((room) => deleteAnalysisCandidate(room, candidateId));
+  };
+
+  const handleAnalyzeRoom = () => {
+    if (!profile) return;
+    updateActiveRoom((room) => analyzeRoomConversation(room, { nickname: profile.nickname, summaryStyle }));
+  };
+
+  const handleSummaryStyleChange = (style: string) => {
+    setSummaryStyle(style);
+    if (!profile || !activeRoomId) return;
+    updateActiveRoom((room) => analyzeRoomConversation(room, { nickname: profile.nickname, summaryStyle: style }));
   };
 
   if (!profile) {
@@ -238,7 +252,7 @@ export default function App() {
               summaryStyles={summaryStyles}
               summaryStyle={summaryStyle}
               userCode={profile.userCode}
-              onSummaryStyleChange={setSummaryStyle}
+              onSummaryStyleChange={handleSummaryStyleChange}
             />
           )}
           {showSettings && !activeRoom && (
@@ -274,6 +288,7 @@ export default function App() {
               onConfirmAnalysisCandidate={handleConfirmAnalysisCandidate}
               onHoldAnalysisCandidate={handleHoldAnalysisCandidate}
               onDeleteAnalysisCandidate={handleDeleteAnalysisCandidate}
+              onAnalyzeRoom={handleAnalyzeRoom}
             />
           )}
           {showPlan && !activeRoom && (
