@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { loadRooms } from './storage';
+import { loadProfile, loadRooms } from './storage';
 import { createRoom } from './roomActions';
 
 describe('storage', () => {
@@ -9,6 +9,7 @@ describe('storage', () => {
       destination: 'Busan',
       period: '6월 7일~6월 8일',
       nickname: '솔',
+      userCode: 'user_abc123',
     }),
   ];
 
@@ -51,5 +52,19 @@ describe('storage', () => {
     vi.stubGlobal('window', { localStorage });
 
     expect(loadRooms(fallbackRooms).map((room) => room.id)).toEqual(['user-room']);
+  });
+
+  it('adds a user code to legacy saved profiles', () => {
+    const localStorage = {
+      getItem: vi.fn(() => JSON.stringify({ nickname: '솔', image: '✈️' })),
+      setItem: vi.fn(),
+    };
+
+    vi.stubGlobal('window', { localStorage });
+
+    const profile = loadProfile();
+
+    expect(profile?.nickname).toBe('솔');
+    expect(profile?.userCode).toMatch(/^user_[a-z0-9]{8}$/);
   });
 });

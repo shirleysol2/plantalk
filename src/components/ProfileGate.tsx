@@ -1,5 +1,6 @@
 import { Image, LogIn } from 'lucide-react';
 import { FormEvent, useState } from 'react';
+import { createShareCode } from '../services/roomActions';
 import type { Profile } from '../types';
 
 type ProfileGateProps = {
@@ -21,6 +22,7 @@ export function ProfileGate({ onComplete }: ProfileGateProps) {
     onComplete({
       nickname: trimmedName,
       image: selectedImage,
+      userCode: createShareCode('user'),
     });
   };
 

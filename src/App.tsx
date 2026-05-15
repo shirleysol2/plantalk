@@ -7,8 +7,8 @@ import { ProfileGate } from './components/ProfileGate';
 import { SettingsView } from './components/SettingsView';
 import { chatRooms, summaryStyles } from './data';
 import { addMessageToRoom, createRoom } from './services/roomActions';
-import { loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
-import type { PanelId, Profile, TabId } from './types';
+import { appendInfoLog, findRoomByShareCode, loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
+import type { ChatRoom, PanelId, Profile, TabId } from './types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>('chat');
@@ -22,9 +22,32 @@ export default function App() {
     saveRooms(rooms);
   }, [rooms]);
 
+  useEffect(() => {
+    if (!profile) return;
+
+    const roomCode = new URLSearchParams(window.location.search).get('room');
+    if (!roomCode) return;
+
+    const linkedRoom = findRoomByShareCode(rooms, roomCode);
+    if (!linkedRoom) return;
+
+    setActiveRoomId(linkedRoom.id);
+    appendInfoLog({
+      action: 'room_opened',
+      userCode: profile.userCode,
+      roomCode: linkedRoom.shareCode,
+      message: `${profile.nickname}님이 공유 링크로 ${linkedRoom.title} 방을 열었어요.`,
+    });
+  }, [profile, rooms]);
+
   const setProfile = (nextProfile: Profile) => {
     setProfileState(nextProfile);
     saveProfile(nextProfile);
+    appendInfoLog({
+      action: 'profile_created',
+      userCode: nextProfile.userCode,
+      message: `${nextProfile.nickname} 프로필이 생성됐어요.`,
+    });
   };
 
   const toggleTask = (taskId: number) => {
@@ -48,10 +71,28 @@ export default function App() {
 
   const handleCreateRoom = (input: { title: string; destination: string; period: string }) => {
     if (!profile) return;
-    const room = createRoom({ ...input, nickname: profile.nickname });
+    const room = createRoom({ ...input, nickname: profile.nickname, userCode: profile.userCode });
     setRooms((current) => [room, ...current]);
     setActiveRoomId(room.id);
     setActiveTab('chat');
+    appendInfoLog({
+      action: 'room_created',
+      userCode: profile.userCode,
+      roomCode: room.shareCode,
+      message: `${profile.nickname}님이 ${room.title} 방을 만들었어요.`,
+    });
+  };
+
+  const handleCopyRoomLink = async (room: ChatRoom) => {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${room.shareCode}`;
+
+    await navigator.clipboard?.writeText(shareUrl);
+    appendInfoLog({
+      action: 'share_link_copied',
+      userCode: profile.userCode,
+      roomCode: room.shareCode,
+      message: `${profile.nickname}님이 ${room.title} 공유 링크를 복사했어요.`,
+    });
   };
 
   const handleSendMessage = (text: string) => {
@@ -79,6 +120,7 @@ export default function App() {
           profile={profile}
           rooms={rooms}
           onCreateRoom={handleCreateRoom}
+          onCopyRoomLink={handleCopyRoomLink}
           onSendMessage={handleSendMessage}
           onSelectRoom={setActiveRoomId}
         />
@@ -92,6 +134,7 @@ export default function App() {
               members={activeRoom.members}
               summaryStyles={summaryStyles}
               summaryStyle={summaryStyle}
+              userCode={profile.userCode}
               onSummaryStyleChange={setSummaryStyle}
             />
           )}
@@ -114,6 +157,7 @@ export default function App() {
               decisions={activeRoom.decisions}
               budgetItems={activeRoom.budgetItems}
               onSelectRoom={setActiveRoomId}
+              onCopyRoomLink={handleCopyRoomLink}
               onToggleTask={toggleTask}
             />
           )}

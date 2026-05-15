@@ -70,6 +70,9 @@ export type Member = {
 
 export type ChatRoom = {
   id: string;
+  shareCode: string;
+  createdByUserCode: string;
+  joinedUserCodes: string[];
   title: string;
   subtitle: string;
   destination: string;
@@ -89,4 +92,14 @@ export type ChatRoom = {
 export type Profile = {
   nickname: string;
   image: string;
+  userCode: string;
+};
+
+export type InfoLogEntry = {
+  id: string;
+  userCode: string;
+  roomCode?: string;
+  action: 'profile_created' | 'room_created' | 'room_opened' | 'share_link_copied';
+  message: string;
+  createdAt: string;
 };

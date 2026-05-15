@@ -5,6 +5,7 @@ type CreateRoomInput = {
   destination: string;
   period: string;
   nickname: string;
+  userCode: string;
 };
 
 type AddMessageInput = {
@@ -29,8 +30,9 @@ export function getInitials(name: string) {
   return Array.from(trimmed)[0];
 }
 
-export function createRoom({ title, destination, period, nickname }: CreateRoomInput): ChatRoom {
+export function createRoom({ title, destination, period, nickname, userCode }: CreateRoomInput): ChatRoom {
   const roomId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const shareCode = createShareCode('room');
   const firstMessage: Message = {
     id: 1,
     sender: 'PlanTalk',
@@ -42,6 +44,9 @@ export function createRoom({ title, destination, period, nickname }: CreateRoomI
 
   return {
     id: roomId,
+    shareCode,
+    createdByUserCode: userCode,
+    joinedUserCodes: [userCode],
     title,
     subtitle: '새롭게 떠나는',
     destination,
@@ -73,6 +78,10 @@ export function createRoom({ title, destination, period, nickname }: CreateRoomI
     },
     members: [{ id: 1, name: nickname, initials: getInitials(nickname), role: '방 만든 사람' }],
   };
+}
+
+export function createShareCode(prefix: 'room' | 'user') {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10).padEnd(8, '0')}`;
 }
 
 export function addMessageToRoom(room: ChatRoom, { nickname, text }: AddMessageInput): ChatRoom {

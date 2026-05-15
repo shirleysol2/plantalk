@@ -519,7 +519,9 @@ h3 {
 .header-meta,
 .chat-summary,
 .card-title,
-.budget-total {
+.budget-total,
+.share-room-button,
+.inline-link-button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -534,6 +536,29 @@ h3 {
   color: #1f1d1b;
   font-size: 13px;
   font-weight: 900;
+}
+
+.share-room-button,
+.inline-link-button {
+  justify-content: center;
+  border: 1px solid #ded8ce;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #1f1d1b;
+  font-weight: 900;
+}
+
+.share-room-button {
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.inline-link-button {
+  width: fit-content;
+  min-height: 34px;
+  margin-top: 12px;
+  padding: 0 12px;
+  font-size: 12px;
 }
 
 .chat-summary {
@@ -1056,6 +1081,18 @@ h3 {
   color: #171711;
 }
 
+.user-code-card {
+  border: 1px solid #ded8ce;
+  border-radius: 16px;
+  padding: 12px;
+  background: #fbfaf7;
+  color: #4d463d;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 800;
+  word-break: break-word;
+}
+
 .member-item div:last-child {
   display: grid;
   gap: 3px;
@@ -1115,6 +1152,8 @@ h3 {
 .extract-chip,
 .composer input,
 .composer button,
+.share-room-button,
+.inline-link-button,
 .panel-tabs button,
 .bottom-nav button,
 .segmented button,

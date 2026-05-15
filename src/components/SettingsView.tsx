@@ -5,16 +5,25 @@ type SettingsViewProps = {
   members: Member[];
   summaryStyles: string[];
   summaryStyle: string;
+  userCode: string;
   onSummaryStyleChange: (style: string) => void;
 };
 
-export function SettingsView({ members, summaryStyles, summaryStyle, onSummaryStyleChange }: SettingsViewProps) {
+export function SettingsView({ members, summaryStyles, summaryStyle, userCode, onSummaryStyleChange }: SettingsViewProps) {
   return (
     <div className="settings-view">
       <div className="panel-heading">
         <p className="eyebrow">설정</p>
         <h2>방 설정</h2>
       </div>
+
+      <section className="plan-card">
+        <div className="card-title">
+          <UsersRound size={18} />
+          <h3>내 페이지 코드</h3>
+        </div>
+        <div className="user-code-card">{userCode}</div>
+      </section>
 
       <section className="plan-card">
         <div className="card-title">

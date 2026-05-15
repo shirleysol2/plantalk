@@ -1,4 +1,4 @@
-import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, ListTodo, MapPinned, Send, Vote } from 'lucide-react';
+import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, Link2, ListTodo, MapPinned, Send, Vote } from 'lucide-react';
 import type { BudgetItem, ChatRoom, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
 
 type PlanNoteProps = {
@@ -11,6 +11,7 @@ type PlanNoteProps = {
   decisions: DecisionItem[];
   budgetItems: BudgetItem[];
   onSelectRoom: (roomId: string) => void;
+  onCopyRoomLink: (room: ChatRoom) => void;
   onToggleTask: (taskId: number) => void;
 };
 
@@ -24,6 +25,7 @@ export function PlanNote({
   decisions,
   budgetItems,
   onSelectRoom,
+  onCopyRoomLink,
   onToggleTask,
 }: PlanNoteProps) {
   const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
@@ -33,6 +35,10 @@ export function PlanNote({
       <div className="panel-heading">
         <p className="eyebrow">방금 정리된</p>
         <h2>{room.destination} 일정표</h2>
+        <button className="inline-link-button" onClick={() => onCopyRoomLink(room)} type="button">
+          <Link2 size={16} />
+          공유 링크 복사
+        </button>
       </div>
 
       <div className="plan-room-switcher" aria-label="계획 노트 채팅방 선택">

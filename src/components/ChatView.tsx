@@ -1,4 +1,4 @@
-import { CalendarDays, MessageCircle, SendHorizontal, Sparkles } from 'lucide-react';
+import { CalendarDays, Link2, MessageCircle, SendHorizontal, Sparkles } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { NewRoomForm } from './NewRoomForm';
 import type { ChatRoom, Profile } from '../types';
@@ -9,11 +9,21 @@ type ChatViewProps = {
   profile: Profile;
   rooms: ChatRoom[];
   onCreateRoom: (input: { title: string; destination: string; period: string }) => void;
+  onCopyRoomLink: (room: ChatRoom) => void;
   onSendMessage: (text: string) => void;
   onSelectRoom: (roomId: string) => void;
 };
 
-export function ChatView({ activeRoom, activeRoomId, profile, rooms, onCreateRoom, onSendMessage, onSelectRoom }: ChatViewProps) {
+export function ChatView({
+  activeRoom,
+  activeRoomId,
+  profile,
+  rooms,
+  onCopyRoomLink,
+  onCreateRoom,
+  onSendMessage,
+  onSelectRoom,
+}: ChatViewProps) {
   const [messageText, setMessageText] = useState('');
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -69,6 +79,10 @@ export function ChatView({ activeRoom, activeRoomId, profile, rooms, onCreateRoo
                 <CalendarDays size={18} />
                 <span>{activeRoom.period}</span>
               </div>
+              <button className="share-room-button" onClick={() => onCopyRoomLink(activeRoom)} type="button">
+                <Link2 size={17} />
+                링크 복사
+              </button>
             </header>
 
             <div className="chat-summary">

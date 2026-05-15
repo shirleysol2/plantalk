@@ -8,6 +8,7 @@ describe('room actions', () => {
       destination: 'Busan',
       period: '6월 7일~6월 8일',
       nickname: '솔',
+      userCode: 'user_abc123',
     });
 
     expect(room.title).toBe('부산 주말여행');
@@ -15,6 +16,9 @@ describe('room actions', () => {
     expect(room.messages[0].text).toContain('부산 주말여행');
     expect(room.finalPlan.title).toBe('Busan 여행 계획');
     expect(room.members[0].name).toBe('솔');
+    expect(room.shareCode).toMatch(/^room_[a-z0-9]{8}$/);
+    expect(room.createdByUserCode).toBe('user_abc123');
+    expect(room.joinedUserCodes).toEqual(['user_abc123']);
   });
 
   it('adds a chat message and extracts planning hints into the room plan', () => {
@@ -23,6 +27,7 @@ describe('room actions', () => {
       destination: 'Busan',
       period: '6월 7일~6월 8일',
       nickname: '솔',
+      userCode: 'user_abc123',
     });
 
     const updated = addMessageToRoom(room, {
