@@ -485,7 +485,11 @@ function buildFinalPlan(room: ChatRoom, summaryStyle: string) {
 
 function buildStyledSummary(room: ChatRoom, summaryStyle: string, firstTitle?: string) {
   const linkCount = (room.linkItems ?? []).length;
-  const baseCounts = `일정 ${room.scheduleItems.length}개, 할 일 ${room.tasks.length}개, 결정사항 ${room.decisions.length}개, 링크 ${linkCount}개`;
+  const scheduleCount = room.scheduleItems.filter((item) => item.status !== '대화 필요').length;
+  const taskCount = room.tasks.filter((task) => task.title !== '친구들에게 채팅방 링크 공유').length;
+  const decisionCount = room.decisions.filter((decision) => decision.state !== '대화 전').length;
+  const budgetCount = room.budgetItems.filter((item) => item.amount !== '0원').length;
+  const baseCounts = `일정 ${scheduleCount}개, 할 일 ${taskCount}개, 결정사항 ${decisionCount}개, 예산 ${budgetCount}개, 링크 ${linkCount}개`;
   if (summaryStyle === '결정사항 위주') {
     const decisions = room.decisions.filter((decision) => decision.state !== '대화 전');
     const decisionText = decisions.map((decision) => `${decision.question}(${decision.state})`).join(', ') || firstTitle || '아직 확정된 결정 없음';
@@ -499,13 +503,16 @@ function buildStyledSummary(room: ChatRoom, summaryStyle: string, firstTitle?: s
 
 function buildStyledShareText(room: ChatRoom, summaryStyle: string) {
   const linkText = (room.linkItems ?? []).length > 0 ? `, 링크 ${(room.linkItems ?? []).length}개` : '';
+  const scheduleCount = room.scheduleItems.filter((item) => item.status !== '대화 필요').length;
+  const taskCount = room.tasks.filter((task) => task.title !== '친구들에게 채팅방 링크 공유').length;
+  const decisionCount = room.decisions.filter((decision) => decision.state !== '대화 전').length;
   if (summaryStyle === '결정사항 위주') {
-    return `${room.title} 결정사항 업데이트: ${room.decisions.length}개 결정/검토 항목이 정리됐어요.`;
+    return `${room.title} 결정사항 업데이트: ${decisionCount}개 결정/검토 항목이 정리됐어요.`;
   }
   if (summaryStyle === '짧고 빠르게') {
-    return `${room.title}: 일정 ${room.scheduleItems.length}, 할 일 ${room.tasks.length}, 결정 ${room.decisions.length}${linkText}`;
+    return `${room.title}: 일정 ${scheduleCount}, 할 일 ${taskCount}, 결정 ${decisionCount}${linkText}`;
   }
-  return `${room.title} 계획 업데이트: 일정 ${room.scheduleItems.length}개, 할 일 ${room.tasks.length}개, 결정사항 ${room.decisions.length}개${linkText}`;
+  return `${room.title} 계획 업데이트: 일정 ${scheduleCount}개, 할 일 ${taskCount}개, 결정사항 ${decisionCount}개${linkText}`;
 }
 
 export function extractLinkItemsFromMessage(message: Message, existingLinks: LinkItem[] = []): LinkItem[] {

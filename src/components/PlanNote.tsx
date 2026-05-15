@@ -81,8 +81,21 @@ export function PlanNote({
     budget: false,
   });
   const [activeNoteTab, setActiveNoteTab] = useState<NoteTab>('briefing');
+  const [showDetails, setShowDetails] = useState(false);
   const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
   const openCandidates = analysisCandidates.filter((candidate) => candidate.status !== 'confirmed');
+  const confirmedScheduleCount = scheduleItems.filter((item) => item.status !== '대화 필요').length;
+  const confirmedTaskCount = tasks.filter((task) => task.title !== '친구들에게 채팅방 링크 공유').length;
+  const confirmedDecisionCount = decisions.filter((decision) => decision.state !== '대화 전').length;
+  const validBudgetCount = budgetItems.filter((item) => item.amount !== '0원').length;
+  const hasBriefedContent =
+    confirmedScheduleCount + confirmedTaskCount + confirmedDecisionCount + validBudgetCount + linkItems.length > 0;
+  const briefingSummary = hasBriefedContent
+    ? `${room.destination} 계획에 일정 ${confirmedScheduleCount}개, 할 일 ${confirmedTaskCount}개, 결정 ${confirmedDecisionCount}개, 예산 ${validBudgetCount}개, 링크 ${linkItems.length}개가 정리되어 있어요. 핵심 내용만 아래에 모아뒀어요.`
+    : finalPlan.summary;
+  const briefingShareText = hasBriefedContent
+    ? `${room.title} 브리핑: 일정 ${confirmedScheduleCount}, 할 일 ${confirmedTaskCount}, 결정 ${confirmedDecisionCount}, 예산 ${validBudgetCount}, 링크 ${linkItems.length}`
+    : finalPlan.shareText;
   const isEditing = (section: EditableSection) => editingSections[section];
   const toggleSectionEdit = (section: EditableSection) => {
     setEditingSections((current) => ({ ...current, [section]: !current[section] }));
@@ -160,9 +173,31 @@ export function PlanNote({
               <p>{finalPlan.members} · 1인 예상 {total.toLocaleString('ko-KR')}원</p>
             </div>
           </div>
-          <p className="briefing-summary">{finalPlan.summary}</p>
+          <p className="briefing-summary">{briefingSummary}</p>
+          <div className="briefing-metrics" aria-label="브리핑 요약 지표">
+            <span>
+              <strong>{confirmedScheduleCount}</strong>
+              일정
+            </span>
+            <span>
+              <strong>{confirmedTaskCount}</strong>
+              할 일
+            </span>
+            <span>
+              <strong>{confirmedDecisionCount}</strong>
+              결정
+            </span>
+            <span>
+              <strong>{validBudgetCount}</strong>
+              예산
+            </span>
+            <span>
+              <strong>{linkItems.length}</strong>
+              링크
+            </span>
+          </div>
           <div className="day-brief-list">
-            {finalPlan.days.map((day) => (
+            {finalPlan.days.slice(0, 6).map((day) => (
               <article className="day-brief" key={day.id}>
                 <span>{day.day}</span>
                 <strong>{day.title}</strong>
@@ -177,7 +212,7 @@ export function PlanNote({
           </div>
           <div className="share-briefing">
             <Send size={16} />
-            <span>{finalPlan.shareText}</span>
+            <span>{briefingShareText}</span>
           </div>
         </section>
       ) : (
@@ -199,7 +234,8 @@ export function PlanNote({
         </section>
       )}
 
-      <section className="plan-card analysis-card">
+      {(openCandidates.length > 0 || activeNoteTab === 'briefing') && (
+        <section className="plan-card analysis-card">
         <div className="card-title">
           <Sparkles size={18} />
           <h3>분석 후보</h3>
@@ -234,193 +270,206 @@ export function PlanNote({
           ))}
         </div>
       </section>
+      )}
 
-      <section className="plan-card accent">
-        <div className="card-title">
-          <MapPinned size={18} />
-          <h3>일정</h3>
-          {renderSectionEditButton('schedule')}
-        </div>
-        <div className="timeline">
-          {scheduleItems.map((item) => (
-            <div className="timeline-item" key={item.id}>
-              <input
-                aria-label="일정 날짜"
-                disabled={!isEditing('schedule') || !onUpdateScheduleItem}
-                onChange={(event) => onUpdateScheduleItem?.(item.id, { date: event.target.value })}
-                value={item.date}
-              />
-              <input
-                aria-label="일정 제목"
-                disabled={!isEditing('schedule') || !onUpdateScheduleItem}
-                onChange={(event) => onUpdateScheduleItem?.(item.id, { title: event.target.value })}
-                value={item.title}
-              />
-              <input
-                aria-label="일정 상태"
-                disabled={!isEditing('schedule') || !onUpdateScheduleItem}
-                onChange={(event) => onUpdateScheduleItem?.(item.id, { status: event.target.value })}
-                value={item.status}
-              />
-              {isEditing('schedule') && onDeleteScheduleItem && (
-                <button
-                  aria-label="일정 삭제"
-                  className="note-icon-button danger"
-                  onClick={() => onDeleteScheduleItem(item.id)}
-                  type="button"
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+      <section className="detail-toggle-card">
+        <button aria-expanded={showDetails} onClick={() => setShowDetails((current) => !current)} type="button">
+          <MoreVertical size={16} />
+          {showDetails ? '상세 편집 닫기' : '상세 편집'}
+        </button>
+        <p>일정, 할 일, 결정, 예산 원본 목록은 필요할 때만 열어서 수정해요.</p>
       </section>
 
-      <section className="plan-card">
-        <div className="card-title">
-          <ListTodo size={18} />
-          <h3>할 일</h3>
-          {renderSectionEditButton('tasks')}
-        </div>
-        <div className="task-list">
-          {tasks.map((task) => (
-            <div className={`task-item ${task.done ? 'done' : ''}`} key={task.id}>
-              <button aria-label="할 일 완료 토글" className="note-check-button" onClick={() => onToggleTask(task.id)} type="button">
-                {task.done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
-              </button>
-              <input
-                aria-label="할 일 제목"
-                disabled={!isEditing('tasks') || !onUpdateTaskItem}
-                onChange={(event) => onUpdateTaskItem?.(task.id, { title: event.target.value })}
-                value={task.title}
-              />
-              <input
-                aria-label="할 일 담당자"
-                disabled={!isEditing('tasks') || !onUpdateTaskItem}
-                onChange={(event) => onUpdateTaskItem?.(task.id, { owner: event.target.value })}
-                value={task.owner}
-              />
-              {isEditing('tasks') && onDeleteTaskItem && (
-                <button aria-label="할 일 삭제" className="note-icon-button danger" onClick={() => onDeleteTaskItem(task.id)} type="button">
-                  <Trash2 size={15} />
-                </button>
-              )}
+      {showDetails && (
+        <>
+          <section className="plan-card accent">
+            <div className="card-title">
+              <MapPinned size={18} />
+              <h3>일정</h3>
+              {renderSectionEditButton('schedule')}
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="timeline">
+              {scheduleItems.map((item) => (
+                <div className="timeline-item" key={item.id}>
+                  <input
+                    aria-label="일정 날짜"
+                    disabled={!isEditing('schedule') || !onUpdateScheduleItem}
+                    onChange={(event) => onUpdateScheduleItem?.(item.id, { date: event.target.value })}
+                    value={item.date}
+                  />
+                  <input
+                    aria-label="일정 제목"
+                    disabled={!isEditing('schedule') || !onUpdateScheduleItem}
+                    onChange={(event) => onUpdateScheduleItem?.(item.id, { title: event.target.value })}
+                    value={item.title}
+                  />
+                  <input
+                    aria-label="일정 상태"
+                    disabled={!isEditing('schedule') || !onUpdateScheduleItem}
+                    onChange={(event) => onUpdateScheduleItem?.(item.id, { status: event.target.value })}
+                    value={item.status}
+                  />
+                  {isEditing('schedule') && onDeleteScheduleItem && (
+                    <button
+                      aria-label="일정 삭제"
+                      className="note-icon-button danger"
+                      onClick={() => onDeleteScheduleItem(item.id)}
+                      type="button"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
 
-      <section className="plan-card">
-        <div className="card-title">
-          <Vote size={18} />
-          <h3>결정 필요</h3>
-          {renderSectionEditButton('decisions')}
-        </div>
-        <div className="decision-list">
-          {decisions.map((decision) => (
-            <div className="decision-item" key={decision.id}>
-              <div className="note-row">
-                <input
-                  aria-label="결정 질문"
-                  disabled={!isEditing('decisions') || !onUpdateDecisionItem}
-                  onChange={(event) => onUpdateDecisionItem?.(decision.id, { question: event.target.value })}
-                  value={decision.question}
-                />
-                {isEditing('decisions') && onDeleteDecisionItem && (
-                  <button
-                    aria-label="결정사항 삭제"
-                    className="note-icon-button danger"
-                    onClick={() => onDeleteDecisionItem(decision.id)}
-                    type="button"
-                  >
-                    <Trash2 size={15} />
+          <section className="plan-card">
+            <div className="card-title">
+              <ListTodo size={18} />
+              <h3>할 일</h3>
+              {renderSectionEditButton('tasks')}
+            </div>
+            <div className="task-list">
+              {tasks.map((task) => (
+                <div className={`task-item ${task.done ? 'done' : ''}`} key={task.id}>
+                  <button aria-label="할 일 완료 토글" className="note-check-button" onClick={() => onToggleTask(task.id)} type="button">
+                    {task.done ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                   </button>
-                )}
-              </div>
-              <input
-                aria-label="결정 선택지"
-                disabled={!isEditing('decisions') || !onUpdateDecisionItem}
-                onChange={(event) =>
-                  onUpdateDecisionItem?.(decision.id, {
-                    options: event.target.value
-                      .split(',')
-                      .map((option) => option.trim())
-                      .filter(Boolean),
-                  })
-                }
-                value={decision.options.join(', ')}
-              />
-              <div className="note-row">
-                <input
-                  aria-label="결정 상태"
-                  disabled={!isEditing('decisions') || !onUpdateDecisionItem}
-                  onChange={(event) => onUpdateDecisionItem?.(decision.id, { state: event.target.value })}
-                  value={decision.state}
-                />
-                {isEditing('decisions') && onUpdateDecisionItem && (
-                  <button
-                    className="note-confirm-button"
-                    disabled={decision.state === '확정'}
-                    onClick={() => onUpdateDecisionItem(decision.id, { state: '확정' })}
-                    type="button"
-                  >
-                    확정
-                  </button>
-                )}
-              </div>
+                  <input
+                    aria-label="할 일 제목"
+                    disabled={!isEditing('tasks') || !onUpdateTaskItem}
+                    onChange={(event) => onUpdateTaskItem?.(task.id, { title: event.target.value })}
+                    value={task.title}
+                  />
+                  <input
+                    aria-label="할 일 담당자"
+                    disabled={!isEditing('tasks') || !onUpdateTaskItem}
+                    onChange={(event) => onUpdateTaskItem?.(task.id, { owner: event.target.value })}
+                    value={task.owner}
+                  />
+                  {isEditing('tasks') && onDeleteTaskItem && (
+                    <button aria-label="할 일 삭제" className="note-icon-button danger" onClick={() => onDeleteTaskItem(task.id)} type="button">
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      <section className="plan-card">
-        <div className="card-title">
-          <Coins size={18} />
-          <h3>예산</h3>
-          {renderSectionEditButton('budget')}
-        </div>
-        <div className="budget-total">
-          <Clock3 size={16} />
-          <span>1인 예상 {total.toLocaleString('ko-KR')}원</span>
-        </div>
-        <div className="budget-grid">
-          {budgetItems.map((item) => (
-            <div className="budget-item" key={item.id}>
-              <div className="note-row">
-                <input
-                  aria-label="예산 항목"
-                  disabled={!isEditing('budget') || !onUpdateBudgetItem}
-                  onChange={(event) => onUpdateBudgetItem?.(item.id, { category: event.target.value })}
-                  value={item.category}
-                />
-                {isEditing('budget') && onDeleteBudgetItem && (
-                  <button
-                    aria-label="예산 삭제"
-                    className="note-icon-button danger"
-                    onClick={() => onDeleteBudgetItem(item.id)}
-                    type="button"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                )}
-              </div>
-              <input
-                aria-label="예산 금액"
-                disabled={!isEditing('budget') || !onUpdateBudgetItem}
-                onChange={(event) => onUpdateBudgetItem?.(item.id, { amount: event.target.value })}
-                value={item.amount}
-              />
-              <input
-                aria-label="예산 메모"
-                disabled={!isEditing('budget') || !onUpdateBudgetItem}
-                onChange={(event) => onUpdateBudgetItem?.(item.id, { note: event.target.value })}
-                value={item.note}
-              />
+          <section className="plan-card">
+            <div className="card-title">
+              <Vote size={18} />
+              <h3>결정 필요</h3>
+              {renderSectionEditButton('decisions')}
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="decision-list">
+              {decisions.map((decision) => (
+                <div className="decision-item" key={decision.id}>
+                  <div className="note-row">
+                    <input
+                      aria-label="결정 질문"
+                      disabled={!isEditing('decisions') || !onUpdateDecisionItem}
+                      onChange={(event) => onUpdateDecisionItem?.(decision.id, { question: event.target.value })}
+                      value={decision.question}
+                    />
+                    {isEditing('decisions') && onDeleteDecisionItem && (
+                      <button
+                        aria-label="결정사항 삭제"
+                        className="note-icon-button danger"
+                        onClick={() => onDeleteDecisionItem(decision.id)}
+                        type="button"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    aria-label="결정 선택지"
+                    disabled={!isEditing('decisions') || !onUpdateDecisionItem}
+                    onChange={(event) =>
+                      onUpdateDecisionItem?.(decision.id, {
+                        options: event.target.value
+                          .split(',')
+                          .map((option) => option.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                    value={decision.options.join(', ')}
+                  />
+                  <div className="note-row">
+                    <input
+                      aria-label="결정 상태"
+                      disabled={!isEditing('decisions') || !onUpdateDecisionItem}
+                      onChange={(event) => onUpdateDecisionItem?.(decision.id, { state: event.target.value })}
+                      value={decision.state}
+                    />
+                    {isEditing('decisions') && onUpdateDecisionItem && (
+                      <button
+                        className="note-confirm-button"
+                        disabled={decision.state === '확정'}
+                        onClick={() => onUpdateDecisionItem(decision.id, { state: '확정' })}
+                        type="button"
+                      >
+                        확정
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="plan-card">
+            <div className="card-title">
+              <Coins size={18} />
+              <h3>예산</h3>
+              {renderSectionEditButton('budget')}
+            </div>
+            <div className="budget-total">
+              <Clock3 size={16} />
+              <span>1인 예상 {total.toLocaleString('ko-KR')}원</span>
+            </div>
+            <div className="budget-grid">
+              {budgetItems.map((item) => (
+                <div className="budget-item" key={item.id}>
+                  <div className="note-row">
+                    <input
+                      aria-label="예산 항목"
+                      disabled={!isEditing('budget') || !onUpdateBudgetItem}
+                      onChange={(event) => onUpdateBudgetItem?.(item.id, { category: event.target.value })}
+                      value={item.category}
+                    />
+                    {isEditing('budget') && onDeleteBudgetItem && (
+                      <button
+                        aria-label="예산 삭제"
+                        className="note-icon-button danger"
+                        onClick={() => onDeleteBudgetItem(item.id)}
+                        type="button"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    aria-label="예산 금액"
+                    disabled={!isEditing('budget') || !onUpdateBudgetItem}
+                    onChange={(event) => onUpdateBudgetItem?.(item.id, { amount: event.target.value })}
+                    value={item.amount}
+                  />
+                  <input
+                    aria-label="예산 메모"
+                    disabled={!isEditing('budget') || !onUpdateBudgetItem}
+                    onChange={(event) => onUpdateBudgetItem?.(item.id, { note: event.target.value })}
+                    value={item.note}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   );
 }
