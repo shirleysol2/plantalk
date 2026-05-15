@@ -549,15 +549,16 @@ h3 {
 }
 
 .share-room-button {
+  width: 42px;
   min-height: 42px;
-  padding: 0 14px;
+  padding: 0;
 }
 
 .inline-link-button {
-  width: fit-content;
+  width: 34px;
   min-height: 34px;
   margin-top: 12px;
-  padding: 0 12px;
+  padding: 0;
   font-size: 12px;
 }
 
@@ -1051,7 +1052,43 @@ h3 {
 }
 
 .card-title {
+  justify-content: space-between;
   margin-bottom: 12px;
+}
+
+.card-title h3 {
+  margin-right: auto;
+}
+
+.section-edit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 30px;
+  border: 1px solid #ded8ce;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: #fffdf8;
+  color: #1f1d1b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.section-edit-button span {
+  display: none;
+}
+
+.section-edit-button.active {
+  border-color: #27231d;
+  background: #27231d;
+  color: #fffdf8;
+}
+
+.section-edit-button:focus-visible span,
+.section-edit-button:hover span,
+.section-edit-button.active span {
+  display: inline;
 }
 
 .timeline,

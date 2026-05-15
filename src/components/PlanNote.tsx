@@ -1,4 +1,5 @@
-import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, Link2, ListTodo, MapPinned, Send, Trash2, Vote } from 'lucide-react';
+import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, Link2, ListTodo, MapPinned, MoreVertical, Send, Trash2, Vote } from 'lucide-react';
+import { useState } from 'react';
 import type { BudgetItem, ChatRoom, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
 
 type PlanNoteProps = {
@@ -23,6 +24,8 @@ type PlanNoteProps = {
   onDeleteBudgetItem?: (itemId: number) => void;
 };
 
+type EditableSection = 'schedule' | 'tasks' | 'decisions' | 'budget';
+
 export function PlanNote({
   room,
   rooms,
@@ -44,16 +47,38 @@ export function PlanNote({
   onUpdateBudgetItem,
   onDeleteBudgetItem,
 }: PlanNoteProps) {
+  const [editingSections, setEditingSections] = useState<Record<EditableSection, boolean>>({
+    schedule: false,
+    tasks: false,
+    decisions: false,
+    budget: false,
+  });
   const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
+  const isEditing = (section: EditableSection) => editingSections[section];
+  const toggleSectionEdit = (section: EditableSection) => {
+    setEditingSections((current) => ({ ...current, [section]: !current[section] }));
+  };
+
+  const renderSectionEditButton = (section: EditableSection) => (
+    <button
+      aria-label={`${isEditing(section) ? '수정 완료' : '수정하기'}`}
+      aria-pressed={isEditing(section)}
+      className={`section-edit-button ${isEditing(section) ? 'active' : ''}`}
+      onClick={() => toggleSectionEdit(section)}
+      type="button"
+    >
+      <MoreVertical size={16} />
+      <span>{isEditing(section) ? '완료' : '수정하기'}</span>
+    </button>
+  );
 
   return (
     <div className="plan-note">
       <div className="panel-heading">
         <p className="eyebrow">방금 정리된</p>
         <h2>{room.destination} 일정표</h2>
-        <button className="inline-link-button" onClick={() => onCopyRoomLink(room)} type="button">
+        <button aria-label="공유 링크 복사" className="inline-link-button" onClick={() => onCopyRoomLink(room)} type="button">
           <Link2 size={16} />
-          공유 링크 복사
         </button>
       </div>
 
@@ -108,29 +133,30 @@ export function PlanNote({
         <div className="card-title">
           <MapPinned size={18} />
           <h3>일정</h3>
+          {renderSectionEditButton('schedule')}
         </div>
         <div className="timeline">
           {scheduleItems.map((item) => (
             <div className="timeline-item" key={item.id}>
               <input
                 aria-label="일정 날짜"
-                disabled={!onUpdateScheduleItem}
+                disabled={!isEditing('schedule') || !onUpdateScheduleItem}
                 onChange={(event) => onUpdateScheduleItem?.(item.id, { date: event.target.value })}
                 value={item.date}
               />
               <input
                 aria-label="일정 제목"
-                disabled={!onUpdateScheduleItem}
+                disabled={!isEditing('schedule') || !onUpdateScheduleItem}
                 onChange={(event) => onUpdateScheduleItem?.(item.id, { title: event.target.value })}
                 value={item.title}
               />
               <input
                 aria-label="일정 상태"
-                disabled={!onUpdateScheduleItem}
+                disabled={!isEditing('schedule') || !onUpdateScheduleItem}
                 onChange={(event) => onUpdateScheduleItem?.(item.id, { status: event.target.value })}
                 value={item.status}
               />
-              {onDeleteScheduleItem && (
+              {isEditing('schedule') && onDeleteScheduleItem && (
                 <button
                   aria-label="일정 삭제"
                   className="note-icon-button danger"
@@ -149,6 +175,7 @@ export function PlanNote({
         <div className="card-title">
           <ListTodo size={18} />
           <h3>할 일</h3>
+          {renderSectionEditButton('tasks')}
         </div>
         <div className="task-list">
           {tasks.map((task) => (
@@ -158,17 +185,17 @@ export function PlanNote({
               </button>
               <input
                 aria-label="할 일 제목"
-                disabled={!onUpdateTaskItem}
+                disabled={!isEditing('tasks') || !onUpdateTaskItem}
                 onChange={(event) => onUpdateTaskItem?.(task.id, { title: event.target.value })}
                 value={task.title}
               />
               <input
                 aria-label="할 일 담당자"
-                disabled={!onUpdateTaskItem}
+                disabled={!isEditing('tasks') || !onUpdateTaskItem}
                 onChange={(event) => onUpdateTaskItem?.(task.id, { owner: event.target.value })}
                 value={task.owner}
               />
-              {onDeleteTaskItem && (
+              {isEditing('tasks') && onDeleteTaskItem && (
                 <button aria-label="할 일 삭제" className="note-icon-button danger" onClick={() => onDeleteTaskItem(task.id)} type="button">
                   <Trash2 size={15} />
                 </button>
@@ -182,6 +209,7 @@ export function PlanNote({
         <div className="card-title">
           <Vote size={18} />
           <h3>결정 필요</h3>
+          {renderSectionEditButton('decisions')}
         </div>
         <div className="decision-list">
           {decisions.map((decision) => (
@@ -189,11 +217,11 @@ export function PlanNote({
               <div className="note-row">
                 <input
                   aria-label="결정 질문"
-                  disabled={!onUpdateDecisionItem}
+                  disabled={!isEditing('decisions') || !onUpdateDecisionItem}
                   onChange={(event) => onUpdateDecisionItem?.(decision.id, { question: event.target.value })}
                   value={decision.question}
                 />
-                {onDeleteDecisionItem && (
+                {isEditing('decisions') && onDeleteDecisionItem && (
                   <button
                     aria-label="결정사항 삭제"
                     className="note-icon-button danger"
@@ -206,7 +234,7 @@ export function PlanNote({
               </div>
               <input
                 aria-label="결정 선택지"
-                disabled={!onUpdateDecisionItem}
+                disabled={!isEditing('decisions') || !onUpdateDecisionItem}
                 onChange={(event) =>
                   onUpdateDecisionItem?.(decision.id, {
                     options: event.target.value
@@ -220,11 +248,11 @@ export function PlanNote({
               <div className="note-row">
                 <input
                   aria-label="결정 상태"
-                  disabled={!onUpdateDecisionItem}
+                  disabled={!isEditing('decisions') || !onUpdateDecisionItem}
                   onChange={(event) => onUpdateDecisionItem?.(decision.id, { state: event.target.value })}
                   value={decision.state}
                 />
-                {onUpdateDecisionItem && (
+                {isEditing('decisions') && onUpdateDecisionItem && (
                   <button
                     className="note-confirm-button"
                     disabled={decision.state === '확정'}
@@ -244,6 +272,7 @@ export function PlanNote({
         <div className="card-title">
           <Coins size={18} />
           <h3>예산</h3>
+          {renderSectionEditButton('budget')}
         </div>
         <div className="budget-total">
           <Clock3 size={16} />
@@ -255,11 +284,11 @@ export function PlanNote({
               <div className="note-row">
                 <input
                   aria-label="예산 항목"
-                  disabled={!onUpdateBudgetItem}
+                  disabled={!isEditing('budget') || !onUpdateBudgetItem}
                   onChange={(event) => onUpdateBudgetItem?.(item.id, { category: event.target.value })}
                   value={item.category}
                 />
-                {onDeleteBudgetItem && (
+                {isEditing('budget') && onDeleteBudgetItem && (
                   <button
                     aria-label="예산 삭제"
                     className="note-icon-button danger"
@@ -272,13 +301,13 @@ export function PlanNote({
               </div>
               <input
                 aria-label="예산 금액"
-                disabled={!onUpdateBudgetItem}
+                disabled={!isEditing('budget') || !onUpdateBudgetItem}
                 onChange={(event) => onUpdateBudgetItem?.(item.id, { amount: event.target.value })}
                 value={item.amount}
               />
               <input
                 aria-label="예산 메모"
-                disabled={!onUpdateBudgetItem}
+                disabled={!isEditing('budget') || !onUpdateBudgetItem}
                 onChange={(event) => onUpdateBudgetItem?.(item.id, { note: event.target.value })}
                 value={item.note}
               />

@@ -148,9 +148,8 @@ export function ChatView({
                 <CalendarDays size={18} />
                 <span>{activeRoom.period}</span>
               </div>
-              <button className="share-room-button" onClick={() => onCopyRoomLink(activeRoom)} type="button">
+              <button aria-label="공유 링크 복사" className="share-room-button" onClick={() => onCopyRoomLink(activeRoom)} type="button">
                 <Link2 size={17} />
-                링크 복사
               </button>
             </header>
 
