@@ -1,7 +1,8 @@
-import { CheckCircle2, Circle, Clock3, Coins, ListTodo, MapPinned, Vote } from 'lucide-react';
-import type { BudgetItem, DecisionItem, ScheduleItem, TaskItem } from '../types';
+import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, ListTodo, MapPinned, Send, Vote } from 'lucide-react';
+import type { BudgetItem, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
 
 type PlanNoteProps = {
+  finalPlan: FinalPlan;
   scheduleItems: ScheduleItem[];
   tasks: TaskItem[];
   decisions: DecisionItem[];
@@ -9,7 +10,7 @@ type PlanNoteProps = {
   onToggleTask: (taskId: number) => void;
 };
 
-export function PlanNote({ scheduleItems, tasks, decisions, budgetItems, onToggleTask }: PlanNoteProps) {
+export function PlanNote({ finalPlan, scheduleItems, tasks, decisions, budgetItems, onToggleTask }: PlanNoteProps) {
   const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
 
   return (
@@ -18,6 +19,39 @@ export function PlanNote({ scheduleItems, tasks, decisions, budgetItems, onToggl
         <p className="eyebrow">계획 노트</p>
         <h2>대화에서 정리된 계획</h2>
       </div>
+
+      <section className="briefing-card">
+        <div className="briefing-status">
+          <span>{finalPlan.status}</span>
+          <strong>{finalPlan.period}</strong>
+        </div>
+        <div className="briefing-title">
+          <CalendarCheck2 size={22} />
+          <div>
+            <h3>{finalPlan.title}</h3>
+            <p>{finalPlan.members} · 1인 예상 {total.toLocaleString('ko-KR')}원</p>
+          </div>
+        </div>
+        <p className="briefing-summary">{finalPlan.summary}</p>
+        <div className="day-brief-list">
+          {finalPlan.days.map((day) => (
+            <article className="day-brief" key={day.id}>
+              <span>{day.day}</span>
+              <strong>{day.title}</strong>
+              <p>{day.route}</p>
+              <div>
+                {day.highlights.map((highlight) => (
+                  <em key={highlight}>{highlight}</em>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+        <div className="share-briefing">
+          <Send size={16} />
+          <span>{finalPlan.shareText}</span>
+        </div>
+      </section>
 
       <section className="plan-card accent">
         <div className="card-title">

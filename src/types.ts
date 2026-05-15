@@ -43,6 +43,24 @@ export type BudgetItem = {
   note: string;
 };
 
+export type FinalPlanDay = {
+  id: number;
+  day: string;
+  title: string;
+  route: string;
+  highlights: string[];
+};
+
+export type FinalPlan = {
+  title: string;
+  period: string;
+  members: string;
+  status: string;
+  summary: string;
+  shareText: string;
+  days: FinalPlanDay[];
+};
+
 export type Member = {
   id: number;
   name: string;

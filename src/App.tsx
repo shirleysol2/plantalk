@@ -4,7 +4,7 @@ import { ChatView } from './components/ChatView';
 import { PanelTabs } from './components/PanelTabs';
 import { PlanNote } from './components/PlanNote';
 import { SettingsView } from './components/SettingsView';
-import { budgetItems, decisions, members, messages, scheduleItems, summaryStyles, taskItems } from './data';
+import { budgetItems, decisions, finalPlan, members, messages, scheduleItems, summaryStyles, taskItems } from './data';
 import type { PanelId, TabId } from './types';
 
 export default function App() {
@@ -40,6 +40,7 @@ export default function App() {
         <div className={activeTab === 'plan' || activePanel === 'plan' ? 'panel-view' : 'panel-view is-hidden-mobile'}>
           {(activeTab === 'plan' || activePanel === 'plan') && (
             <PlanNote
+              finalPlan={finalPlan}
               scheduleItems={scheduleItems}
               tasks={tasks}
               decisions={decisions}
