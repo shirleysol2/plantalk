@@ -179,6 +179,15 @@ export function joinRoomAsMember(room: ChatRoom, { nickname, userCode }: RoomMem
   };
 }
 
+export function syncRoomMembersFromMessages(room: ChatRoom): ChatRoom {
+  return room.messages
+    .filter((message) => message.sender !== 'Plink' && message.sender !== 'PlanTalk')
+    .reduce((currentRoom, message) => {
+      const userCode = message.senderUserCode ?? `sender_${message.sender}`;
+      return joinRoomAsMember(currentRoom, { nickname: message.sender, userCode });
+    }, room);
+}
+
 export function applyMessageToRoom(room: ChatRoom, { message, target, nickname, summaryStyle }: ApplyMessageInput): ChatRoom {
   const cleanText = message.text.trim();
   if (!cleanText) return room;
@@ -299,13 +308,14 @@ function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nick
   }
 
   if (candidate.type === 'decision' || candidate.type === 'insight') {
+    const question = readableCandidateTitle(candidate);
     return {
       ...room,
       decisions: [
         ...room.decisions,
         {
           id: nextId(room.decisions),
-          question: candidate.title,
+          question,
           options: /확정/.test(candidate.detail) ? ['확정'] : ['좋아요', '다시 논의'],
           state: candidate.type === 'insight' ? '검토 필요' : /확정/.test(candidate.detail) ? '확정' : '결정 필요',
         },
@@ -329,6 +339,14 @@ function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nick
   }
 
   return room;
+}
+
+function readableCandidateTitle(candidate: AnalysisCandidate) {
+  if (candidate.title === '대화 메모' || candidate.title === '결정 필요' || candidate.title === '계획 결정') {
+    return candidate.sourceText.slice(0, 34);
+  }
+
+  return candidate.title;
 }
 
 function inferCandidateDate(title: string) {

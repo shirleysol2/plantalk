@@ -10,6 +10,7 @@ import {
   holdAnalysisCandidate,
   isMessageMineForUser,
   joinRoomAsMember,
+  syncRoomMembersFromMessages,
 } from './roomActions';
 import { analyzeMessageWithLocalAgent } from './planAnalysisAgent';
 import type { AnalysisCandidate, Message } from '../types';
@@ -166,6 +167,40 @@ describe('room actions', () => {
     expect(joinedAgain.joinedUserCodes).toEqual(['user_abc123', 'user_mj']);
     expect(joinedAgain.members.filter((member) => member.name === '민지')).toHaveLength(1);
     expect(joinedAgain.finalPlan.members).toBe('2명');
+  });
+
+  it('rebuilds room members from existing chat history', () => {
+    const room = {
+      ...createRoom({
+        title: '강릉 여행',
+        destination: '강릉',
+        period: '5/29-5/31',
+        nickname: '솔',
+        userCode: 'user_sol',
+      }),
+      messages: [
+        { id: 1, sender: '우석', initials: '우', time: '오전 12:34', text: '짬뽕밥 좋다 그거 먹자' },
+        { id: 2, sender: '솔', senderUserCode: 'user_sol', initials: '솔', time: '오전 12:47', text: '오' },
+        { id: 3, sender: '클린트', initials: '클', time: '오전 12:50', text: '마지막날은 더덕향' },
+      ],
+      members: [{ id: 1, name: '솔', initials: '솔', role: '방 만든 사람' }],
+      joinedUserCodes: ['user_sol'],
+      finalPlan: {
+        ...createRoom({
+          title: '강릉 여행',
+          destination: '강릉',
+          period: '5/29-5/31',
+          nickname: '솔',
+          userCode: 'user_sol',
+        }).finalPlan,
+        members: '1명',
+      },
+    };
+
+    const synced = syncRoomMembersFromMessages(room);
+
+    expect(synced.members.map((member) => member.name)).toEqual(['솔', '우석', '클린트']);
+    expect(synced.finalPlan.members).toBe('3명');
   });
 
   it('keeps completion hints in candidates until the user confirms them', () => {
@@ -364,7 +399,7 @@ describe('analysis candidate actions', () => {
     expect(withBudget.decisions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ question: '숙소 선택', state: '확정' }),
-        expect.objectContaining({ question: '결정 필요', state: '검토 필요' }),
+        expect.objectContaining({ question: '숙소는 아직 못 정했어', state: '검토 필요' }),
       ]),
     );
     expect(withBudget.budgetItems).toContainEqual(expect.objectContaining({ category: '예산 후보', amount: '120,000원' }));
@@ -449,5 +484,23 @@ describe('analysis candidate actions', () => {
     });
 
     expect(updated.finalPlan.summary).toContain('결정된 내용');
+  });
+
+  it('uses source text instead of generic memo labels in confirmed briefing cards', () => {
+    const room = roomWithCandidate({
+      id: 1,
+      type: 'decision',
+      title: '대화 메모',
+      detail: '결정 검토 후보',
+      sourceMessageId: 2,
+      sourceText: '더덕향 좋지 그걸로 하자',
+      status: 'pending',
+    });
+
+    const updated = confirmAnalysisCandidate(room, { candidateId: 1, nickname: '지수' });
+
+    expect(updated.decisions).toContainEqual(expect.objectContaining({ question: '더덕향 좋지 그걸로 하자' }));
+    expect(updated.finalPlan.days).toContainEqual(expect.objectContaining({ title: '더덕향 좋지 그걸로 하자' }));
+    expect(updated.finalPlan.days.some((day) => day.title === '대화 메모')).toBe(false);
   });
 });

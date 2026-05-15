@@ -1,4 +1,5 @@
 import type { ChatRoom, InfoLogEntry } from '../types';
+import { syncRoomMembersFromMessages } from './roomActions';
 
 const SUPABASE_URL = 'https://mtxzciyxxxeracbvnvib.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_hT2HzwWSK-DJJ_jCwMCTBg_Ad88ppjE';
@@ -58,8 +59,8 @@ function supabaseHeaders() {
 }
 
 function normalizeRemoteRoom(room: ChatRoom): ChatRoom {
-  return {
+  return syncRoomMembersFromMessages({
     ...room,
     analysisCandidates: room.analysisCandidates ?? [],
-  };
+  });
 }

@@ -1,4 +1,4 @@
-import { createShareCode } from './roomActions';
+import { createShareCode, syncRoomMembersFromMessages } from './roomActions';
 import type { ChatRoom, InfoLogEntry, Profile } from '../types';
 
 const ROOMS_KEY = 'plantalk.rooms';
@@ -55,13 +55,13 @@ function normalizeRoom(room: ChatRoom): ChatRoom {
   const shareCode = room.shareCode ?? createShareCode('room');
   const createdByUserCode = room.createdByUserCode ?? 'user_legacy';
 
-  return {
+  return syncRoomMembersFromMessages({
     ...room,
     shareCode,
     createdByUserCode,
     joinedUserCodes: room.joinedUserCodes ?? [createdByUserCode],
     analysisCandidates: room.analysisCandidates ?? [],
-  };
+  });
 }
 
 function readJson<T>(key: string): T | null {
