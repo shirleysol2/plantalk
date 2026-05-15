@@ -61,6 +61,7 @@ function normalizeRoom(room: ChatRoom): ChatRoom {
     createdByUserCode,
     joinedUserCodes: room.joinedUserCodes ?? [createdByUserCode],
     analysisCandidates: room.analysisCandidates ?? [],
+    linkItems: room.linkItems ?? [],
   });
 }
 

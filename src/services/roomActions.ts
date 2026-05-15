@@ -1,4 +1,4 @@
-import type { AnalysisCandidate, ChatRoom, Message, MessageApplyTarget } from '../types';
+import type { AnalysisCandidate, ChatRoom, LinkItem, LinkItemCategory, Message, MessageApplyTarget } from '../types';
 import { localPlanAnalysisAgent } from './planAnalysisAgent';
 
 type CreateRoomInput = {
@@ -82,6 +82,7 @@ export function createRoom({ title, destination, period, nickname, userCode }: C
     lastMessage: firstMessage.text,
     messages: [firstMessage],
     analysisCandidates: [],
+    linkItems: [],
     scheduleItems: [{ id: 1, date: '준비 중', title: `${destination} 여행 일정 잡기`, status: '대화 필요' }],
     tasks: [{ id: 1, title: '친구들에게 채팅방 링크 공유', owner: nickname, done: false }],
     decisions: [{ id: 1, question: '여행 핵심 코스', options: ['맛집', '휴식', '관광'], state: '대화 전' }],
@@ -145,12 +146,15 @@ export function addMessageToRoom(room: ChatRoom, { nickname, userCode, text, sum
   ];
 
   const roomWithMember = userCode ? joinRoomAsMember(room, { nickname, userCode }) : room;
+  const messages = [...roomWithMember.messages, message];
+  const linkItems = mergeLinkItems(roomWithMember.linkItems ?? [], extractLinkItemsFromMessage(message, roomWithMember.linkItems ?? []));
 
   return updateCandidateReviewStatus({
     ...roomWithMember,
     lastMessage: cleanText,
-    messages: [...roomWithMember.messages, message],
+    messages,
     analysisCandidates,
+    linkItems,
   }, summaryStyle);
 }
 
@@ -260,6 +264,27 @@ export function analyzeRoomConversation(room: ChatRoom, { nickname, summaryStyle
     : updateCandidateReviewStatus(nextRoom, summaryStyle);
 }
 
+export function isBriefingCommand(text: string) {
+  return /(브리핑|정리해서\s*보여|정리해\s*줘|계획\s*정리|요약해\s*줘)/i.test(text.trim());
+}
+
+export function generateRoomBriefing(room: ChatRoom, { nickname, summaryStyle }: AnalyzeRoomInput): ChatRoom {
+  const syncedRoom = syncRoomMembersFromMessages(room);
+  const analyzedRoom = analyzeRoomConversation(syncRoomLinksFromMessages(syncedRoom), { nickname, summaryStyle });
+  const pendingCandidates = (analyzedRoom.analysisCandidates ?? []).filter((candidate) => candidate.status === 'pending');
+  const appliedRoom = pendingCandidates.reduce((currentRoom, candidate) => {
+    const nextRoom = applyCandidateToRoom(currentRoom, candidate, nickname);
+    return {
+      ...nextRoom,
+      analysisCandidates: nextRoom.analysisCandidates.map((item) =>
+        item.id === candidate.id ? { ...item, status: 'confirmed' } : item,
+      ),
+    };
+  }, analyzedRoom);
+
+  return refreshFinalPlan(appliedRoom, summaryStyle);
+}
+
 export function holdAnalysisCandidate(room: ChatRoom, candidateId: number): ChatRoom {
   return updateCandidateReviewStatus({
     ...room,
@@ -278,6 +303,7 @@ export function deleteAnalysisCandidate(room: ChatRoom, candidateId: number): Ch
 
 function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nickname: string): ChatRoom {
   if (candidate.type === 'schedule') {
+    if (room.scheduleItems.some((item) => item.title === candidate.title && item.status !== '대화 필요')) return room;
     return {
       ...room,
       scheduleItems: [
@@ -293,6 +319,7 @@ function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nick
   }
 
   if (candidate.type === 'task') {
+    if (room.tasks.some((task) => task.title === candidate.title)) return room;
     return {
       ...room,
       tasks: [
@@ -309,6 +336,7 @@ function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nick
 
   if (candidate.type === 'decision' || candidate.type === 'insight') {
     const question = readableCandidateTitle(candidate);
+    if (room.decisions.some((decision) => decision.question === question && decision.state !== '대화 전')) return room;
     return {
       ...room,
       decisions: [
@@ -324,6 +352,7 @@ function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nick
   }
 
   if (candidate.type === 'budget') {
+    if (room.budgetItems.some((item) => item.category === candidate.title && item.amount === candidate.detail)) return room;
     return {
       ...room,
       budgetItems: [
@@ -389,7 +418,8 @@ function hasConfirmedPlanData(room: ChatRoom) {
     room.scheduleItems.length > 1 ||
     room.tasks.length > 1 ||
     room.decisions.length > 1 ||
-    room.budgetItems.some((item) => item.amount !== '0원')
+    room.budgetItems.some((item) => item.amount !== '0원') ||
+    (room.linkItems ?? []).length > 0
   );
 }
 
@@ -398,8 +428,13 @@ function buildFinalPlan(room: ChatRoom, summaryStyle: string) {
   const confirmedTasks = room.tasks.filter((task) => task.title !== '친구들에게 채팅방 링크 공유');
   const confirmedDecisions = room.decisions.filter((decision) => decision.state !== '대화 전');
   const confirmedBudgets = room.budgetItems.filter((item) => item.amount !== '0원');
+  const planLinks = room.linkItems ?? [];
   const firstTitle =
-    confirmedSchedule[0]?.title ?? confirmedDecisions[0]?.question ?? confirmedTasks[0]?.title ?? confirmedBudgets[0]?.category;
+    confirmedSchedule[0]?.title ??
+    confirmedDecisions[0]?.question ??
+    confirmedTasks[0]?.title ??
+    confirmedBudgets[0]?.category ??
+    planLinks[0]?.title;
 
   const days = [
     ...confirmedSchedule.slice(0, 3).map((item, index) => ({
@@ -430,6 +465,13 @@ function buildFinalPlan(room: ChatRoom, summaryStyle: string) {
       route: `${budget.amount} · ${budget.note}`,
       highlights: ['예산', budget.amount],
     })),
+    ...planLinks.slice(0, 3).map((link, index) => ({
+      id: 80 + index,
+      day: '링크',
+      title: link.title,
+      route: `${link.siteName} · ${linkCategoryLabel(link.category)}`,
+      highlights: ['URL', linkCategoryLabel(link.category)],
+    })),
   ];
 
   return {
@@ -442,7 +484,8 @@ function buildFinalPlan(room: ChatRoom, summaryStyle: string) {
 }
 
 function buildStyledSummary(room: ChatRoom, summaryStyle: string, firstTitle?: string) {
-  const baseCounts = `일정 ${room.scheduleItems.length}개, 할 일 ${room.tasks.length}개, 결정사항 ${room.decisions.length}개`;
+  const linkCount = (room.linkItems ?? []).length;
+  const baseCounts = `일정 ${room.scheduleItems.length}개, 할 일 ${room.tasks.length}개, 결정사항 ${room.decisions.length}개, 링크 ${linkCount}개`;
   if (summaryStyle === '결정사항 위주') {
     const decisions = room.decisions.filter((decision) => decision.state !== '대화 전');
     const decisionText = decisions.map((decision) => `${decision.question}(${decision.state})`).join(', ') || firstTitle || '아직 확정된 결정 없음';
@@ -455,13 +498,90 @@ function buildStyledSummary(room: ChatRoom, summaryStyle: string, firstTitle?: s
 }
 
 function buildStyledShareText(room: ChatRoom, summaryStyle: string) {
+  const linkText = (room.linkItems ?? []).length > 0 ? `, 링크 ${(room.linkItems ?? []).length}개` : '';
   if (summaryStyle === '결정사항 위주') {
     return `${room.title} 결정사항 업데이트: ${room.decisions.length}개 결정/검토 항목이 정리됐어요.`;
   }
   if (summaryStyle === '짧고 빠르게') {
-    return `${room.title}: 일정 ${room.scheduleItems.length}, 할 일 ${room.tasks.length}, 결정 ${room.decisions.length}`;
+    return `${room.title}: 일정 ${room.scheduleItems.length}, 할 일 ${room.tasks.length}, 결정 ${room.decisions.length}${linkText}`;
   }
-  return `${room.title} 계획 업데이트: 일정 ${room.scheduleItems.length}개, 할 일 ${room.tasks.length}개, 결정사항 ${room.decisions.length}개`;
+  return `${room.title} 계획 업데이트: 일정 ${room.scheduleItems.length}개, 할 일 ${room.tasks.length}개, 결정사항 ${room.decisions.length}개${linkText}`;
+}
+
+export function extractLinkItemsFromMessage(message: Message, existingLinks: LinkItem[] = []): LinkItem[] {
+  const urls = Array.from(message.text.matchAll(/https?:\/\/[^\s<>"']+/g), (match) => normalizeUrl(match[0])).filter(Boolean);
+  const existingUrlSet = new Set(existingLinks.map((item) => item.url));
+  const uniqueUrls = Array.from(new Set(urls)).filter((url) => !existingUrlSet.has(url));
+
+  return uniqueUrls.map((url, index) => {
+    const siteName = getSiteName(url);
+    const category = inferLinkCategory(url, message.text);
+    return {
+      id: nextId(existingLinks) + index,
+      url,
+      siteName,
+      title: buildLinkTitle(siteName, category, message.text),
+      category,
+      sourceMessageId: message.id,
+      sourceText: message.text,
+    };
+  });
+}
+
+function syncRoomLinksFromMessages(room: ChatRoom): ChatRoom {
+  const linkItems = room.messages.reduce(
+    (links, message) => mergeLinkItems(links, extractLinkItemsFromMessage(message, links)),
+    room.linkItems ?? [],
+  );
+
+  return { ...room, linkItems };
+}
+
+function mergeLinkItems(existingLinks: LinkItem[], nextLinks: LinkItem[]) {
+  const existingUrlSet = new Set(existingLinks.map((item) => item.url));
+  return [...existingLinks, ...nextLinks.filter((link) => !existingUrlSet.has(link.url))];
+}
+
+function normalizeUrl(url: string) {
+  return url.replace(/[),.?!\]}]+$/g, '');
+}
+
+function getSiteName(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+function inferLinkCategory(url: string, text: string): LinkItemCategory {
+  const haystack = `${url} ${text}`.toLowerCase();
+  if (/예약|reservation|booking|ticket|티켓/.test(haystack)) return 'reservation';
+  if (/map|maps|지도|place|kakao|naver/.test(haystack)) return 'map';
+  if (/flight|air|항공|기차|ktx|train|렌트|rental|교통/.test(haystack)) return 'transport';
+  if (/hotel|airbnb|숙소|호텔|펜션|stay/.test(haystack)) return 'stay';
+  if (/restaurant|food|맛집|식당|카페|cafe/.test(haystack)) return 'food';
+  if (/plan|itinerary|trip|일정|코스|여행/.test(haystack)) return 'plan';
+  return 'other';
+}
+
+function buildLinkTitle(siteName: string, category: LinkItemCategory, text: string) {
+  const label = linkCategoryLabel(category);
+  const context = text.replace(/https?:\/\/[^\s<>"']+/g, '').trim().slice(0, 26);
+  return context ? `${label}: ${context}` : `${siteName} 링크`;
+}
+
+function linkCategoryLabel(category: LinkItemCategory) {
+  const labels: Record<LinkItemCategory, string> = {
+    reservation: '예약',
+    map: '지도',
+    transport: '교통',
+    stay: '숙소',
+    food: '맛집',
+    plan: '계획',
+    other: '참고',
+  };
+  return labels[category];
 }
 
 function buildCandidateSummary(room: ChatRoom, candidateCount: number, summaryStyle: string) {

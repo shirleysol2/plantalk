@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Link2, MessageCircle, MoreVertical, SendHorizontal, Sparkles } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Link2, MessageCircle, MoreVertical, Search, SendHorizontal, Sparkles, Trash2 } from 'lucide-react';
 import { FormEvent, MouseEvent, PointerEvent, useEffect, useRef, useState } from 'react';
 import { NewRoomForm } from './NewRoomForm';
 import { PlinkLogo } from './PlinkLogo';
@@ -14,6 +14,7 @@ type ChatViewProps = {
   onCopyRoomLink: (room: ChatRoom) => void;
   onSendMessage: (text: string) => void;
   onSelectRoom: (roomId: string) => void;
+  onDeleteRoom?: (roomId: string) => void;
   onApplyMessage?: (message: Message, targetType: MessageApplyTarget) => void;
 };
 
@@ -35,9 +36,11 @@ export function ChatView({
   onCreateRoom,
   onSendMessage,
   onSelectRoom,
+  onDeleteRoom,
   onApplyMessage,
 }: ChatViewProps) {
   const [messageText, setMessageText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [openActionMessageId, setOpenActionMessageId] = useState<number | null>(null);
   const [isMobileRoomOpen, setIsMobileRoomOpen] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,6 +94,7 @@ export function ChatView({
   const handleSelectRoom = (roomId: string) => {
     onSelectRoom(roomId);
     setIsMobileRoomOpen(true);
+    setSearchQuery('');
   };
 
   const handleBackToRooms = () => {
@@ -124,6 +128,11 @@ export function ChatView({
   }, [activeRoomId]);
 
   const viewClassName = `chat-view ${rooms.length > 0 ? 'has-rooms' : 'is-empty'} ${isMobileRoomOpen ? 'is-room-open' : ''}`;
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const visibleMessages = activeRoom?.messages.filter((message) => {
+    if (!normalizedSearchQuery) return true;
+    return `${message.sender} ${message.text}`.toLowerCase().includes(normalizedSearchQuery);
+  });
 
   return (
     <div className={viewClassName}>
@@ -141,19 +150,29 @@ export function ChatView({
         {rooms.length > 0 && <NewRoomForm compact ctaLabel="채팅방 만들기" onCreateRoom={handleCreateRoom} />}
         <div className="room-items">
           {rooms.map((room) => (
-            <button
+            <div
               className={`room-item ${activeRoomId === room.id ? 'active' : ''} ${room.coverTone}`}
               key={room.id}
-              onClick={() => handleSelectRoom(room.id)}
-              type="button"
             >
-              <span className="room-icon">{room.destination.slice(0, 1)}</span>
-              <span>
-                <strong>{room.title}</strong>
-                <small>{room.lastMessage}</small>
-              </span>
+              <button className="room-select-button" onClick={() => handleSelectRoom(room.id)} type="button">
+                <span className="room-icon">{room.destination.slice(0, 1)}</span>
+                <span>
+                  <strong>{room.title}</strong>
+                  <small>{room.lastMessage}</small>
+                </span>
+              </button>
               {room.unread > 0 && <em>{room.unread}</em>}
-            </button>
+              <button
+                aria-label={`${room.title} 채팅방 삭제`}
+                className="room-delete-button"
+                onClick={() => {
+                  if (window.confirm(`${room.title} 채팅방을 삭제할까요?`)) onDeleteRoom?.(room.id);
+                }}
+                type="button"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
           ))}
         </div>
       </aside>
@@ -185,8 +204,20 @@ export function ChatView({
               <span>대화가 자연스럽게 일정, 할 일, 결정사항으로 정리되고 있어요.</span>
             </div>
 
+            <label className="chat-search">
+              <Search size={16} />
+              <input
+                aria-label="채팅 검색"
+                placeholder="채팅 검색"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+              {normalizedSearchQuery && <span>{visibleMessages?.length ?? 0}</span>}
+            </label>
+
             <div className="message-list">
-              {activeRoom.messages.map((message) => {
+              {visibleMessages?.length === 0 && <p className="empty-search-result">검색 결과가 없습니다.</p>}
+              {visibleMessages?.map((message) => {
                 const isMine = isMessageMineForUser(message, profile);
 
                 return (

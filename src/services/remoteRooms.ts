@@ -62,5 +62,6 @@ function normalizeRemoteRoom(room: ChatRoom): ChatRoom {
   return syncRoomMembersFromMessages({
     ...room,
     analysisCandidates: room.analysisCandidates ?? [],
+    linkItems: room.linkItems ?? [],
   });
 }

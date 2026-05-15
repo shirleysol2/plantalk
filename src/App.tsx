@@ -13,7 +13,9 @@ import {
   confirmAnalysisCandidate,
   createRoom,
   deleteAnalysisCandidate,
+  generateRoomBriefing,
   holdAnalysisCandidate,
+  isBriefingCommand,
   joinRoomAsMember,
 } from './services/roomActions';
 import { appendRemoteInfoLog, loadRemoteRoom, saveRemoteRoom } from './services/remoteRooms';
@@ -129,15 +131,7 @@ export default function App() {
     setRooms((current) =>
       current.map((room) => (room.id === activeRoomId ? optimisticRoom : room)),
     );
-
-    void loadRemoteRoom(activeRoom.shareCode).then(async (remoteRoom) => {
-      const baseRoom = remoteRoom ?? activeRoom;
-      const updatedRoom = updater(baseRoom);
-      setRooms((current) =>
-        current.map((room) => (room.shareCode === updatedRoom.shareCode ? updatedRoom : room)),
-      );
-      await saveRemoteRoom(updatedRoom);
-    });
+    void saveRemoteRoom(optimisticRoom);
   };
 
   const updateRoomList = <TItem extends { id: number }>(
@@ -187,9 +181,12 @@ export default function App() {
 
   const handleSendMessage = (text: string) => {
     if (!profile || !activeRoomId) return;
-    updateActiveRoom((room) =>
-      addMessageToRoom(room, { nickname: profile.nickname, userCode: profile.userCode, text, summaryStyle }),
-    );
+    updateActiveRoom((room) => {
+      const roomWithMessage = addMessageToRoom(room, { nickname: profile.nickname, userCode: profile.userCode, text, summaryStyle });
+      return isBriefingCommand(text)
+        ? generateRoomBriefing(roomWithMessage, { nickname: profile.nickname, summaryStyle })
+        : roomWithMessage;
+    });
   };
 
   const handleApplyMessage = (message: Message, target: MessageApplyTarget) => {
@@ -219,13 +216,28 @@ export default function App() {
 
   const handleAnalyzeRoom = () => {
     if (!profile) return;
-    updateActiveRoom((room) => analyzeRoomConversation(room, { nickname: profile.nickname, summaryStyle }));
+    updateActiveRoom((room) => generateRoomBriefing(room, { nickname: profile.nickname, summaryStyle }));
   };
 
   const handleSummaryStyleChange = (style: string) => {
     setSummaryStyle(style);
     if (!profile || !activeRoomId) return;
     updateActiveRoom((room) => analyzeRoomConversation(room, { nickname: profile.nickname, summaryStyle: style }));
+  };
+
+  const handleDeleteRoom = (roomId: string) => {
+    setRooms((current) => {
+      const deletedRoom = current.find((room) => room.id === roomId);
+      const nextRooms = current.filter((room) => room.id !== roomId);
+      const roomCode = new URLSearchParams(window.location.search).get('room');
+      if (deletedRoom?.shareCode && roomCode === deletedRoom.shareCode) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      if (roomId === activeRoomId) {
+        setActiveRoomId(nextRooms[0]?.id ?? null);
+      }
+      return nextRooms;
+    });
   };
 
   if (!profile) {
@@ -248,6 +260,7 @@ export default function App() {
           onApplyMessage={handleApplyMessage}
           onSendMessage={handleSendMessage}
           onSelectRoom={setActiveRoomId}
+          onDeleteRoom={handleDeleteRoom}
         />
       </section>
 
@@ -278,6 +291,7 @@ export default function App() {
               activeRoomId={activeRoomId}
               finalPlan={activeRoom.finalPlan}
               analysisCandidates={activeRoom.analysisCandidates ?? []}
+              linkItems={activeRoom.linkItems ?? []}
               scheduleItems={activeRoom.scheduleItems}
               tasks={activeRoom.tasks}
               decisions={activeRoom.decisions}

@@ -6,8 +6,10 @@ import {
   confirmAnalysisCandidate,
   createRoom,
   deleteAnalysisCandidate,
+  generateRoomBriefing,
   getInitials,
   holdAnalysisCandidate,
+  isBriefingCommand,
   isMessageMineForUser,
   joinRoomAsMember,
   syncRoomMembersFromMessages,
@@ -96,6 +98,7 @@ describe('room actions', () => {
     expect(room.shareCode).toMatch(/^room_[a-z0-9]{8}$/);
     expect(room.createdByUserCode).toBe('user_abc123');
     expect(room.joinedUserCodes).toEqual(['user_abc123']);
+    expect(room.linkItems).toEqual([]);
   });
 
   it('adds a chat message and queues planning hints for confirmation', () => {
@@ -150,6 +153,69 @@ describe('room actions', () => {
     expect(updated.joinedUserCodes).toEqual(['user_abc123', 'user_mj']);
     expect(updated.members).toContainEqual(expect.objectContaining({ name: '민지', role: '참여자' }));
     expect(updated.finalPlan.members).toBe('2명');
+  });
+
+  it('stores shared URLs with site names and planning categories', () => {
+    const room = createRoom({
+      title: '강릉 여행',
+      destination: '강릉',
+      period: '5/29-5/31',
+      nickname: '솔',
+      userCode: 'user_sol',
+    });
+
+    const updated = addMessageToRoom(room, {
+      nickname: '우석',
+      userCode: 'user_woo',
+      text: '숙소 예약 링크 https://www.booking.com/hotel/kr/gangneung.html 확인해줘',
+    });
+
+    expect(updated.linkItems).toContainEqual(
+      expect.objectContaining({
+        siteName: 'booking.com',
+        category: 'reservation',
+        sourceMessageId: 2,
+        url: 'https://www.booking.com/hotel/kr/gangneung.html',
+      }),
+    );
+  });
+
+  it('recognizes chat commands that should produce a briefing', () => {
+    expect(isBriefingCommand('정리해서 보여줘')).toBe(true);
+    expect(isBriefingCommand('브리핑 해줘')).toBe(true);
+    expect(isBriefingCommand('그냥 수다')).toBe(false);
+  });
+
+  it('generates a confirmed briefing from the conversation including members and links', () => {
+    const room = createRoom({
+      title: '강릉 여행',
+      destination: '강릉',
+      period: '5/29-5/31',
+      nickname: '솔',
+      userCode: 'user_sol',
+    });
+    const withMessages = [
+      ['우석', 'user_woo', '짬뽕밥 좋다 그거 먹자'],
+      ['클린트', 'user_clint', '마지막날은 더덕향으로 확정하자 https://naver.me/gangneung-food'],
+      ['솔', 'user_sol', '더덕향 좋지 그걸로 하자'],
+    ].reduce(
+      (currentRoom, [nickname, userCode, text]) =>
+        addMessageToRoom(currentRoom, { nickname, userCode, text, summaryStyle: '꼼꼼하게' }),
+      room,
+    );
+
+    const briefed = generateRoomBriefing(withMessages, { nickname: '솔', summaryStyle: '꼼꼼하게' });
+
+    expect(briefed.finalPlan.members).toBe('3명');
+    expect(briefed.linkItems[0]).toEqual(expect.objectContaining({ siteName: 'naver.me' }));
+    expect(briefed.finalPlan.summary).toContain('링크 1개');
+    expect(briefed.finalPlan.days).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: expect.stringContaining('더덕향') }),
+        expect.objectContaining({ day: '링크', route: expect.stringContaining('naver.me') }),
+      ]),
+    );
+    expect(briefed.analysisCandidates.every((candidate) => candidate.status !== 'pending')).toBe(true);
   });
 
   it('adds shared-link visitors to room members once without duplicating them', () => {

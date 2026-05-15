@@ -30,6 +30,18 @@ export type AnalysisCandidate = {
   status: AnalysisCandidateStatus;
 };
 
+export type LinkItemCategory = 'reservation' | 'map' | 'transport' | 'stay' | 'food' | 'plan' | 'other';
+
+export type LinkItem = {
+  id: number;
+  url: string;
+  siteName: string;
+  title: string;
+  category: LinkItemCategory;
+  sourceMessageId: number;
+  sourceText: string;
+};
+
 export type AnalyzeMessageInput = {
   message: Message;
   destination: string;
@@ -104,6 +116,7 @@ export type ChatRoom = {
   lastMessage: string;
   messages: Message[];
   analysisCandidates: AnalysisCandidate[];
+  linkItems: LinkItem[];
   scheduleItems: ScheduleItem[];
   tasks: TaskItem[];
   decisions: DecisionItem[];

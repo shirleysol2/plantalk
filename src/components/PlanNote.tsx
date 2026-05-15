@@ -14,7 +14,7 @@ import {
   Vote,
 } from 'lucide-react';
 import { useState } from 'react';
-import type { AnalysisCandidate, BudgetItem, ChatRoom, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
+import type { AnalysisCandidate, BudgetItem, ChatRoom, DecisionItem, FinalPlan, LinkItem, ScheduleItem, TaskItem } from '../types';
 
 type PlanNoteProps = {
   room: ChatRoom;
@@ -22,6 +22,7 @@ type PlanNoteProps = {
   activeRoomId: string;
   finalPlan: FinalPlan;
   analysisCandidates: AnalysisCandidate[];
+  linkItems: LinkItem[];
   scheduleItems: ScheduleItem[];
   tasks: TaskItem[];
   decisions: DecisionItem[];
@@ -44,6 +45,7 @@ type PlanNoteProps = {
 };
 
 type EditableSection = 'schedule' | 'tasks' | 'decisions' | 'budget';
+type NoteTab = 'briefing' | 'links';
 
 export function PlanNote({
   room,
@@ -51,6 +53,7 @@ export function PlanNote({
   activeRoomId,
   finalPlan,
   analysisCandidates,
+  linkItems,
   scheduleItems,
   tasks,
   decisions,
@@ -77,6 +80,7 @@ export function PlanNote({
     decisions: false,
     budget: false,
   });
+  const [activeNoteTab, setActiveNoteTab] = useState<NoteTab>('briefing');
   const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
   const openCandidates = analysisCandidates.filter((candidate) => candidate.status !== 'confirmed');
   const isEditing = (section: EditableSection) => editingSections[section];
@@ -121,38 +125,79 @@ export function PlanNote({
         ))}
       </div>
 
-      <section className="briefing-card">
-        <div className="briefing-status">
-          <span>{finalPlan.status}</span>
-          <strong>{finalPlan.period}</strong>
-        </div>
-        <div className="briefing-title">
-          <CalendarCheck2 size={22} />
-          <div>
-            <h3>{finalPlan.title}</h3>
-            <p>{finalPlan.members} · 1인 예상 {total.toLocaleString('ko-KR')}원</p>
+      <div className="note-tabs" role="tablist" aria-label="계획 노트 보기">
+        <button
+          aria-selected={activeNoteTab === 'briefing'}
+          className={activeNoteTab === 'briefing' ? 'active' : ''}
+          onClick={() => setActiveNoteTab('briefing')}
+          role="tab"
+          type="button"
+        >
+          브리핑
+        </button>
+        <button
+          aria-selected={activeNoteTab === 'links'}
+          className={activeNoteTab === 'links' ? 'active' : ''}
+          onClick={() => setActiveNoteTab('links')}
+          role="tab"
+          type="button"
+        >
+          URL 히스토리
+          <span>{linkItems.length}</span>
+        </button>
+      </div>
+
+      {activeNoteTab === 'briefing' ? (
+        <section className="briefing-card">
+          <div className="briefing-status">
+            <span>{finalPlan.status}</span>
+            <strong>{finalPlan.period}</strong>
           </div>
-        </div>
-        <p className="briefing-summary">{finalPlan.summary}</p>
-        <div className="day-brief-list">
-          {finalPlan.days.map((day) => (
-            <article className="day-brief" key={day.id}>
-              <span>{day.day}</span>
-              <strong>{day.title}</strong>
-              <p>{day.route}</p>
-              <div>
-                {day.highlights.map((highlight) => (
-                  <em key={highlight}>{highlight}</em>
-                ))}
-              </div>
-            </article>
-          ))}
-        </div>
-        <div className="share-briefing">
-          <Send size={16} />
-          <span>{finalPlan.shareText}</span>
-        </div>
-      </section>
+          <div className="briefing-title">
+            <CalendarCheck2 size={22} />
+            <div>
+              <h3>{finalPlan.title}</h3>
+              <p>{finalPlan.members} · 1인 예상 {total.toLocaleString('ko-KR')}원</p>
+            </div>
+          </div>
+          <p className="briefing-summary">{finalPlan.summary}</p>
+          <div className="day-brief-list">
+            {finalPlan.days.map((day) => (
+              <article className="day-brief" key={day.id}>
+                <span>{day.day}</span>
+                <strong>{day.title}</strong>
+                <p>{day.route}</p>
+                <div>
+                  {day.highlights.map((highlight) => (
+                    <em key={highlight}>{highlight}</em>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="share-briefing">
+            <Send size={16} />
+            <span>{finalPlan.shareText}</span>
+          </div>
+        </section>
+      ) : (
+        <section className="plan-card link-history-card">
+          <div className="card-title">
+            <Link2 size={18} />
+            <h3>URL 히스토리</h3>
+          </div>
+          <div className="link-history-list">
+            {linkItems.length === 0 && <p className="candidate-empty">아직 채팅에서 발견한 URL이 없습니다.</p>}
+            {linkItems.map((link) => (
+              <a href={link.url} key={link.id} rel="noreferrer" target="_blank">
+                <span>{link.siteName}</span>
+                <strong>{link.title}</strong>
+                <small>{link.url}</small>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="plan-card analysis-card">
         <div className="card-title">
@@ -160,7 +205,8 @@ export function PlanNote({
           <h3>분석 후보</h3>
           <span className="candidate-count">{openCandidates.length}</span>
           <button className="analysis-run-button" onClick={onAnalyzeRoom} type="button">
-            AI 분석
+            <Sparkles size={14} />
+            브리핑
           </button>
         </div>
         <div className="candidate-list">
