@@ -340,14 +340,14 @@ button {
   background: #fffdf8;
 }
 
-.new-room-form div {
+.new-room-form-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.new-room-form div button,
+.new-room-form-header button,
 .new-room-form > button {
   border: 2px solid #1f1d1b;
   border-radius: 999px;
@@ -356,7 +356,7 @@ button {
   font-weight: 900;
 }
 
-.new-room-form div button {
+.new-room-form-header button {
   display: grid;
   width: 28px;
   height: 28px;
@@ -377,6 +377,52 @@ button {
   font-size: 13px;
   font-weight: 800;
   outline: none;
+}
+
+.period-input-wrap {
+  position: relative;
+  display: grid;
+}
+
+.period-input-wrap input {
+  padding-right: 42px;
+}
+
+.calendar-toggle-button {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #655c50;
+  transform: translateY(-50%);
+}
+
+.calendar-range-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid rgba(31, 29, 27, 0.14);
+  border-radius: 14px;
+  padding: 9px;
+  background: #fffaf0;
+}
+
+.calendar-range-panel label {
+  display: grid;
+  gap: 5px;
+  color: #655c50;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.calendar-range-panel input {
+  padding: 8px;
 }
 
 .room-item {
@@ -1977,7 +2023,7 @@ h1 em,
     overflow: visible;
   }
 
-  .new-room-form div {
+  .new-room-form-header {
     display: flex;
   }
 
