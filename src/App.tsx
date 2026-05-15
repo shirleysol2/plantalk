@@ -6,7 +6,14 @@ import { PlanNote } from './components/PlanNote';
 import { ProfileGate } from './components/ProfileGate';
 import { SettingsView } from './components/SettingsView';
 import { chatRooms, summaryStyles } from './data';
-import { addMessageToRoom, applyMessageToRoom, createRoom } from './services/roomActions';
+import {
+  addMessageToRoom,
+  applyMessageToRoom,
+  confirmAnalysisCandidate,
+  createRoom,
+  deleteAnalysisCandidate,
+  holdAnalysisCandidate,
+} from './services/roomActions';
 import { appendRemoteInfoLog, loadRemoteRoom, saveRemoteRoom } from './services/remoteRooms';
 import { appendInfoLog, findRoomByShareCode, loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
 import type { BudgetItem, ChatRoom, DecisionItem, Message, MessageApplyTarget, PanelId, Profile, ScheduleItem, TabId, TaskItem } from './types';
@@ -186,6 +193,19 @@ export default function App() {
     });
   };
 
+  const handleConfirmAnalysisCandidate = (candidateId: number) => {
+    if (!profile) return;
+    updateActiveRoom((room) => confirmAnalysisCandidate(room, { candidateId, nickname: profile.nickname }));
+  };
+
+  const handleHoldAnalysisCandidate = (candidateId: number) => {
+    updateActiveRoom((room) => holdAnalysisCandidate(room, candidateId));
+  };
+
+  const handleDeleteAnalysisCandidate = (candidateId: number) => {
+    updateActiveRoom((room) => deleteAnalysisCandidate(room, candidateId));
+  };
+
   if (!profile) {
     return <ProfileGate onComplete={setProfile} />;
   }
@@ -235,6 +255,7 @@ export default function App() {
               rooms={rooms}
               activeRoomId={activeRoomId}
               finalPlan={activeRoom.finalPlan}
+              analysisCandidates={activeRoom.analysisCandidates ?? []}
               scheduleItems={activeRoom.scheduleItems}
               tasks={activeRoom.tasks}
               decisions={activeRoom.decisions}
@@ -250,6 +271,9 @@ export default function App() {
               onDeleteDecisionItem={(decisionId) => deleteRoomListItem('decisions', decisionId)}
               onUpdateBudgetItem={(itemId, updates) => updateRoomList<BudgetItem>('budgetItems', itemId, updates)}
               onDeleteBudgetItem={(itemId) => deleteRoomListItem('budgetItems', itemId)}
+              onConfirmAnalysisCandidate={handleConfirmAnalysisCandidate}
+              onHoldAnalysisCandidate={handleHoldAnalysisCandidate}
+              onDeleteAnalysisCandidate={handleDeleteAnalysisCandidate}
             />
           )}
           {showPlan && !activeRoom && (

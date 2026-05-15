@@ -1,12 +1,27 @@
-import { CalendarCheck2, CheckCircle2, Circle, Clock3, Coins, Link2, ListTodo, MapPinned, MoreVertical, Send, Trash2, Vote } from 'lucide-react';
+import {
+  CalendarCheck2,
+  CheckCircle2,
+  Circle,
+  Clock3,
+  Coins,
+  Link2,
+  ListTodo,
+  MapPinned,
+  MoreVertical,
+  Send,
+  Sparkles,
+  Trash2,
+  Vote,
+} from 'lucide-react';
 import { useState } from 'react';
-import type { BudgetItem, ChatRoom, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
+import type { AnalysisCandidate, BudgetItem, ChatRoom, DecisionItem, FinalPlan, ScheduleItem, TaskItem } from '../types';
 
 type PlanNoteProps = {
   room: ChatRoom;
   rooms: ChatRoom[];
   activeRoomId: string;
   finalPlan: FinalPlan;
+  analysisCandidates: AnalysisCandidate[];
   scheduleItems: ScheduleItem[];
   tasks: TaskItem[];
   decisions: DecisionItem[];
@@ -22,6 +37,9 @@ type PlanNoteProps = {
   onDeleteDecisionItem?: (decisionId: number) => void;
   onUpdateBudgetItem?: (itemId: number, updates: Partial<BudgetItem>) => void;
   onDeleteBudgetItem?: (itemId: number) => void;
+  onConfirmAnalysisCandidate?: (candidateId: number) => void;
+  onHoldAnalysisCandidate?: (candidateId: number) => void;
+  onDeleteAnalysisCandidate?: (candidateId: number) => void;
 };
 
 type EditableSection = 'schedule' | 'tasks' | 'decisions' | 'budget';
@@ -31,6 +49,7 @@ export function PlanNote({
   rooms,
   activeRoomId,
   finalPlan,
+  analysisCandidates,
   scheduleItems,
   tasks,
   decisions,
@@ -46,6 +65,9 @@ export function PlanNote({
   onDeleteDecisionItem,
   onUpdateBudgetItem,
   onDeleteBudgetItem,
+  onConfirmAnalysisCandidate,
+  onHoldAnalysisCandidate,
+  onDeleteAnalysisCandidate,
 }: PlanNoteProps) {
   const [editingSections, setEditingSections] = useState<Record<EditableSection, boolean>>({
     schedule: false,
@@ -54,6 +76,7 @@ export function PlanNote({
     budget: false,
   });
   const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
+  const openCandidates = analysisCandidates.filter((candidate) => candidate.status !== 'confirmed');
   const isEditing = (section: EditableSection) => editingSections[section];
   const toggleSectionEdit = (section: EditableSection) => {
     setEditingSections((current) => ({ ...current, [section]: !current[section] }));
@@ -126,6 +149,38 @@ export function PlanNote({
         <div className="share-briefing">
           <Send size={16} />
           <span>{finalPlan.shareText}</span>
+        </div>
+      </section>
+
+      <section className="plan-card analysis-card">
+        <div className="card-title">
+          <Sparkles size={18} />
+          <h3>분석 후보</h3>
+          <span className="candidate-count">{openCandidates.length}</span>
+        </div>
+        <div className="candidate-list">
+          {openCandidates.length === 0 && <p className="candidate-empty">새로 검토할 후보가 없습니다.</p>}
+          {openCandidates.map((candidate) => (
+            <article className={`candidate-item ${candidate.status}`} key={candidate.id}>
+              <div>
+                <span className={`candidate-type ${candidate.type}`}>{candidate.type}</span>
+                <strong>{candidate.title}</strong>
+                <p>{candidate.detail}</p>
+                <small>{candidate.sourceText}</small>
+              </div>
+              <div className="candidate-actions">
+                <button onClick={() => onConfirmAnalysisCandidate?.(candidate.id)} type="button">
+                  확정
+                </button>
+                <button onClick={() => onHoldAnalysisCandidate?.(candidate.id)} type="button">
+                  {candidate.status === 'held' ? '다시 검토' : '보류'}
+                </button>
+                <button className="danger" onClick={() => onDeleteAnalysisCandidate?.(candidate.id)} type="button">
+                  삭제
+                </button>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 

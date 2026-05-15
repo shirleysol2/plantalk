@@ -60,6 +60,7 @@ function normalizeRoom(room: ChatRoom): ChatRoom {
     shareCode,
     createdByUserCode,
     joinedUserCodes: room.joinedUserCodes ?? [createdByUserCode],
+    analysisCandidates: room.analysisCandidates ?? [],
   };
 }
 

@@ -15,6 +15,26 @@ export type Message = {
   };
 };
 
+export type AnalysisCandidateType = 'schedule' | 'task' | 'decision' | 'budget' | 'insight';
+
+export type AnalysisCandidateStatus = 'pending' | 'confirmed' | 'held';
+
+export type AnalysisCandidate = {
+  id: number;
+  type: AnalysisCandidateType;
+  title: string;
+  detail: string;
+  sourceMessageId: number;
+  sourceText: string;
+  status: AnalysisCandidateStatus;
+};
+
+export type AnalyzeMessageInput = {
+  message: Message;
+  destination: string;
+  nickname: string;
+};
+
 export type ScheduleItem = {
   id: number;
   date: string;
@@ -81,6 +101,7 @@ export type ChatRoom = {
   unread: number;
   lastMessage: string;
   messages: Message[];
+  analysisCandidates: AnalysisCandidate[];
   scheduleItems: ScheduleItem[];
   tasks: TaskItem[];
   decisions: DecisionItem[];

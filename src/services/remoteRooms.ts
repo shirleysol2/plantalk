@@ -15,7 +15,7 @@ export async function loadRemoteRoom(shareCode: string) {
   if (!response.ok) return null;
 
   const rows = (await response.json()) as Array<{ room: ChatRoom }>;
-  return rows[0]?.room ?? null;
+  return rows[0]?.room ? normalizeRemoteRoom(rows[0].room) : null;
 }
 
 export async function saveRemoteRoom(room: ChatRoom) {
@@ -54,5 +54,12 @@ function supabaseHeaders() {
     apikey: SUPABASE_KEY,
     Authorization: `Bearer ${SUPABASE_KEY}`,
     'Content-Type': 'application/json',
+  };
+}
+
+function normalizeRemoteRoom(room: ChatRoom): ChatRoom {
+  return {
+    ...room,
+    analysisCandidates: room.analysisCandidates ?? [],
   };
 }

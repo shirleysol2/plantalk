@@ -956,6 +956,11 @@ h3 {
   background: #fff48d;
 }
 
+.analysis-card {
+  border-color: #1f1d1b;
+  background: #fffdf8;
+}
+
 .briefing-card {
   display: grid;
   gap: 14px;
@@ -1077,6 +1082,127 @@ h3 {
 
 .card-title h3 {
   margin-right: auto;
+}
+
+.candidate-count {
+  display: inline-flex;
+  min-width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1f1d1b;
+  border-radius: 999px;
+  background: #22211f;
+  color: #fffdf8;
+  font-size: 12px;
+  font-weight: 1000;
+}
+
+.candidate-list {
+  display: grid;
+  gap: 10px;
+}
+
+.candidate-empty {
+  margin-bottom: 0;
+  color: #655c50;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.candidate-item {
+  display: grid;
+  gap: 10px;
+  border: 2px solid #1f1d1b;
+  border-radius: 18px;
+  padding: 12px;
+  background: #fff9d8;
+}
+
+.candidate-item.held {
+  background: #f5f7fb;
+  color: #655c50;
+}
+
+.candidate-item strong,
+.candidate-item p,
+.candidate-item small {
+  display: block;
+}
+
+.candidate-item strong {
+  margin-top: 7px;
+  color: #1f1d1b;
+  font-size: 14px;
+}
+
+.candidate-item p {
+  margin: 4px 0;
+  color: #2d2923;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.candidate-item small {
+  color: #6d6458;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.candidate-type {
+  display: inline-flex;
+  width: fit-content;
+  border: 2px solid #1f1d1b;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: #fffdf8;
+  color: #1f1d1b;
+  font-size: 10px;
+  font-weight: 1000;
+  text-transform: uppercase;
+}
+
+.candidate-type.schedule {
+  background: #a8ddf6;
+}
+
+.candidate-type.task {
+  background: #d8f3c9;
+}
+
+.candidate-type.decision,
+.candidate-type.insight {
+  background: #fff48d;
+}
+
+.candidate-type.budget {
+  background: #ffd1ca;
+}
+
+.candidate-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.candidate-actions button {
+  min-height: 34px;
+  border: 2px solid #1f1d1b;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #1f1d1b;
+  font-size: 12px;
+  font-weight: 1000;
+}
+
+.candidate-actions button:first-child {
+  background: #22211f;
+  color: #fffdf8;
+}
+
+.candidate-actions button.danger {
+  color: #d64535;
 }
 
 .section-edit-button {

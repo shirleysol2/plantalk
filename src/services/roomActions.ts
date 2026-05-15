@@ -1,4 +1,5 @@
-import type { ChatRoom, Message, MessageApplyTarget } from '../types';
+import type { AnalysisCandidate, ChatRoom, Message, MessageApplyTarget } from '../types';
+import { localPlanAnalysisAgent } from './planAnalysisAgent';
 
 type CreateRoomInput = {
   title: string;
@@ -16,6 +17,11 @@ type AddMessageInput = {
 type ApplyMessageInput = {
   message: Pick<Message, 'text'>;
   target: MessageApplyTarget;
+  nickname: string;
+};
+
+type ConfirmCandidateInput = {
+  candidateId: number;
   nickname: string;
 };
 
@@ -61,6 +67,7 @@ export function createRoom({ title, destination, period, nickname, userCode }: C
     unread: 0,
     lastMessage: firstMessage.text,
     messages: [firstMessage],
+    analysisCandidates: [],
     scheduleItems: [{ id: 1, date: '준비 중', title: `${destination} 여행 일정 잡기`, status: '대화 필요' }],
     tasks: [{ id: 1, title: '친구들에게 채팅방 링크 공유', owner: nickname, done: false }],
     decisions: [{ id: 1, question: '여행 핵심 코스', options: ['맛집', '휴식', '관광'], state: '대화 전' }],
@@ -104,36 +111,24 @@ export function addMessageToRoom(room: ChatRoom, { nickname, text }: AddMessageI
     extraction: inferExtraction(cleanText),
   };
 
-  const inferredSchedule = inferSchedule(cleanText);
-  const inferredTask = inferTask(cleanText, nickname);
-  const inferredDecision = inferDecision(cleanText);
-  const inferredBudget = inferBudget(cleanText);
+  const analysisCandidates = [
+    ...(room.analysisCandidates ?? []),
+    ...localPlanAnalysisAgent.analyzeMessage({
+      message,
+      destination: room.destination,
+      nickname,
+    }).map((candidate, index) => ({
+      ...candidate,
+      id: nextId(room.analysisCandidates ?? []) + index,
+    })),
+  ];
 
-  const scheduleItems = inferredSchedule
-    ? [...room.scheduleItems, { id: nextId(room.scheduleItems), ...inferredSchedule }]
-    : room.scheduleItems;
-  const tasks = inferredTask ? [...room.tasks, { id: nextId(room.tasks), ...inferredTask }] : room.tasks;
-  const decisions = inferredDecision
-    ? [...room.decisions, { id: nextId(room.decisions), ...inferredDecision }]
-    : room.decisions;
-  const budgetItems = inferredBudget
-    ? [...room.budgetItems.filter((item) => item.amount !== '0원'), { id: nextId(room.budgetItems), ...inferredBudget }]
-    : room.budgetItems;
-
-  return {
+  return updateCandidateReviewStatus({
     ...room,
     lastMessage: cleanText,
     messages: [...room.messages, message],
-    scheduleItems,
-    tasks,
-    decisions,
-    budgetItems,
-    finalPlan: {
-      ...room.finalPlan,
-      summary: buildSummary(room.destination, scheduleItems.length, tasks.length, decisions.length),
-      shareText: `${room.title} 계획 업데이트: 일정 ${scheduleItems.length}개, 할 일 ${tasks.length}개, 결정사항 ${decisions.length}개`,
-    },
-  };
+    analysisCandidates,
+  });
 }
 
 export function applyMessageToRoom(room: ChatRoom, { message, target, nickname }: ApplyMessageInput): ChatRoom {
@@ -167,6 +162,144 @@ export function applyMessageToRoom(room: ChatRoom, { message, target, nickname }
       shareText: `${room.title} 계획 업데이트: 일정 ${scheduleItems.length}개, 할 일 ${tasks.length}개, 결정사항 ${decisions.length}개`,
     },
   };
+}
+
+export function confirmAnalysisCandidate(room: ChatRoom, { candidateId, nickname }: ConfirmCandidateInput): ChatRoom {
+  const candidate = (room.analysisCandidates ?? []).find((item) => item.id === candidateId);
+  if (!candidate || candidate.status === 'confirmed') return room;
+
+  const nextRoom = applyCandidateToRoom(room, candidate, nickname);
+  return refreshFinalPlan({
+    ...nextRoom,
+    analysisCandidates: nextRoom.analysisCandidates.map((item) =>
+      item.id === candidateId ? { ...item, status: 'confirmed' } : item,
+    ),
+  });
+}
+
+export function holdAnalysisCandidate(room: ChatRoom, candidateId: number): ChatRoom {
+  return updateCandidateReviewStatus({
+    ...room,
+    analysisCandidates: (room.analysisCandidates ?? []).map((item) =>
+      item.id === candidateId ? { ...item, status: item.status === 'held' ? 'pending' : 'held' } : item,
+    ),
+  });
+}
+
+export function deleteAnalysisCandidate(room: ChatRoom, candidateId: number): ChatRoom {
+  return updateCandidateReviewStatus({
+    ...room,
+    analysisCandidates: (room.analysisCandidates ?? []).filter((item) => item.id !== candidateId),
+  });
+}
+
+function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nickname: string): ChatRoom {
+  if (candidate.type === 'schedule') {
+    return {
+      ...room,
+      scheduleItems: [
+        ...room.scheduleItems,
+        {
+          id: nextId(room.scheduleItems),
+          date: inferCandidateDate(candidate.title),
+          title: candidate.title,
+          status: /변경/.test(candidate.detail) ? '변경' : /확정/.test(candidate.detail) ? '확정' : '후보',
+        },
+      ],
+    };
+  }
+
+  if (candidate.type === 'task') {
+    return {
+      ...room,
+      tasks: [
+        ...room.tasks,
+        {
+          id: nextId(room.tasks),
+          title: candidate.title,
+          owner: nickname,
+          done: /완료/.test(candidate.detail),
+        },
+      ],
+    };
+  }
+
+  if (candidate.type === 'decision' || candidate.type === 'insight') {
+    return {
+      ...room,
+      decisions: [
+        ...room.decisions,
+        {
+          id: nextId(room.decisions),
+          question: candidate.title,
+          options: /확정/.test(candidate.detail) ? ['확정'] : ['좋아요', '다시 논의'],
+          state: candidate.type === 'insight' ? '검토 필요' : /확정/.test(candidate.detail) ? '확정' : '결정 필요',
+        },
+      ],
+    };
+  }
+
+  if (candidate.type === 'budget') {
+    return {
+      ...room,
+      budgetItems: [
+        ...room.budgetItems.filter((item) => item.amount !== '0원'),
+        {
+          id: nextId(room.budgetItems),
+          category: candidate.title,
+          amount: candidate.detail,
+          note: '분석 후보 확정',
+        },
+      ],
+    };
+  }
+
+  return room;
+}
+
+function inferCandidateDate(title: string) {
+  const match = title.match(/월요일|화요일|수요일|목요일|금요일|토요일|일요일|오전|오후|Day\s?\d|[0-9]{1,2}시/);
+  return match?.[0] ?? '분석 확정';
+}
+
+function refreshFinalPlan(room: ChatRoom): ChatRoom {
+  return updateCandidateReviewStatus({
+    ...room,
+    finalPlan: {
+      ...room.finalPlan,
+      status: '확정 정리',
+      summary: buildSummary(room.destination, room.scheduleItems.length, room.tasks.length, room.decisions.length),
+      shareText: `${room.title} 계획 업데이트: 일정 ${room.scheduleItems.length}개, 할 일 ${room.tasks.length}개, 결정사항 ${room.decisions.length}개`,
+    },
+  });
+}
+
+function updateCandidateReviewStatus(room: ChatRoom): ChatRoom {
+  const activeCandidates = (room.analysisCandidates ?? []).filter((candidate) => candidate.status !== 'confirmed');
+  const status = activeCandidates.some((candidate) => candidate.status === 'pending')
+    ? '검토 중'
+    : activeCandidates.length > 0
+      ? '보류 있음'
+      : hasConfirmedPlanData(room)
+        ? '확정 정리'
+        : '작성 중';
+
+  return {
+    ...room,
+    finalPlan: {
+      ...room.finalPlan,
+      status,
+    },
+  };
+}
+
+function hasConfirmedPlanData(room: ChatRoom) {
+  return (
+    room.scheduleItems.length > 1 ||
+    room.tasks.length > 1 ||
+    room.decisions.length > 1 ||
+    room.budgetItems.some((item) => item.amount !== '0원')
+  );
 }
 
 function inferExtraction(text: string): Message['extraction'] {
