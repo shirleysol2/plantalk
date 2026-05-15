@@ -18,10 +18,34 @@ export default function App() {
   const [activeRoomId, setActiveRoomId] = useState<string | null>(() => loadRooms(chatRooms)[0]?.id ?? null);
   const [profile, setProfileState] = useState<Profile | null>(() => loadProfile());
   const [summaryStyle, setSummaryStyle] = useState(summaryStyles[0]);
+  const activeRoom = rooms.find((room) => room.id === activeRoomId);
 
   useEffect(() => {
     saveRooms(rooms);
   }, [rooms]);
+
+  useEffect(() => {
+    if (!activeRoom?.shareCode) return;
+
+    let cancelled = false;
+
+    const syncActiveRoom = async () => {
+      const remoteRoom = await loadRemoteRoom(activeRoom.shareCode);
+      if (cancelled || !remoteRoom) return;
+
+      setRooms((current) =>
+        current.map((room) => (room.shareCode === remoteRoom.shareCode ? remoteRoom : room)),
+      );
+    };
+
+    void syncActiveRoom();
+    const intervalId = window.setInterval(syncActiveRoom, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeRoom?.shareCode]);
 
   useEffect(() => {
     if (!profile) return;
@@ -73,32 +97,31 @@ export default function App() {
   const toggleTask = (taskId: number) => {
     if (!activeRoomId) return;
 
-    setRooms((current) =>
-      current.map((room) =>
-        room.id === activeRoomId
-          ? {
-              ...room,
-              tasks: room.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done } : task)),
-            }
-          : room,
-      ),
-    );
+    updateActiveRoom((room) => ({
+      ...room,
+      tasks: room.tasks.map((task) => (task.id === taskId ? { ...task, done: !task.done } : task)),
+    }));
   };
 
-  const activeRoom = rooms.find((room) => room.id === activeRoomId);
   const showSettings = activeTab === 'settings' || (activeTab === 'chat' && activePanel === 'settings');
   const showPlan = activeTab === 'plan' || (activeTab === 'chat' && activePanel === 'plan');
 
   const updateActiveRoom = (updater: (room: ChatRoom) => ChatRoom) => {
-    if (!activeRoomId) return;
+    if (!activeRoomId || !activeRoom) return;
+
+    const optimisticRoom = updater(activeRoom);
     setRooms((current) =>
-      current.map((room) => {
-        if (room.id !== activeRoomId) return room;
-        const updatedRoom = updater(room);
-        void saveRemoteRoom(updatedRoom);
-        return updatedRoom;
-      }),
+      current.map((room) => (room.id === activeRoomId ? optimisticRoom : room)),
     );
+
+    void loadRemoteRoom(activeRoom.shareCode).then(async (remoteRoom) => {
+      const baseRoom = remoteRoom ?? activeRoom;
+      const updatedRoom = updater(baseRoom);
+      setRooms((current) =>
+        current.map((room) => (room.shareCode === updatedRoom.shareCode ? updatedRoom : room)),
+      );
+      await saveRemoteRoom(updatedRoom);
+    });
   };
 
   const updateRoomList = <TItem extends { id: number }>(
@@ -148,14 +171,7 @@ export default function App() {
 
   const handleSendMessage = (text: string) => {
     if (!profile || !activeRoomId) return;
-    setRooms((current) =>
-      current.map((room) => {
-        if (room.id !== activeRoomId) return room;
-        const updatedRoom = addMessageToRoom(room, { nickname: profile.nickname, text });
-        void saveRemoteRoom(updatedRoom);
-        return updatedRoom;
-      }),
-    );
+    updateActiveRoom((room) => addMessageToRoom(room, { nickname: profile.nickname, text }));
   };
 
   const handleApplyMessage = (message: Message, target: MessageApplyTarget) => {
