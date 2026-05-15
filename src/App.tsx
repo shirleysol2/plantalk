@@ -112,6 +112,17 @@ export default function App() {
     });
   };
 
+  const updateProfile = (updates: Partial<Pick<Profile, 'nickname' | 'image'>>) => {
+    if (!profile) return;
+    const nextProfile = {
+      ...profile,
+      ...updates,
+      nickname: updates.nickname?.trim() || profile.nickname,
+    };
+    setProfileState(nextProfile);
+    saveProfile(nextProfile);
+  };
+
   const toggleTask = (taskId: number) => {
     if (!activeRoomId) return;
 
@@ -240,6 +251,11 @@ export default function App() {
     });
   };
 
+  const handleEditProfile = () => {
+    setActiveTab('settings');
+    setActivePanel('settings');
+  };
+
   if (!profile) {
     return <ProfileGate onComplete={setProfile} />;
   }
@@ -261,6 +277,7 @@ export default function App() {
           onSendMessage={handleSendMessage}
           onSelectRoom={setActiveRoomId}
           onDeleteRoom={handleDeleteRoom}
+          onEditProfile={handleEditProfile}
         />
       </section>
 
@@ -272,7 +289,9 @@ export default function App() {
               members={activeRoom.members}
               summaryStyles={summaryStyles}
               summaryStyle={summaryStyle}
+              profile={profile}
               userCode={profile.userCode}
+              onProfileChange={updateProfile}
               onSummaryStyleChange={handleSummaryStyleChange}
             />
           )}

@@ -15,6 +15,7 @@ type ChatViewProps = {
   onSendMessage: (text: string) => void;
   onSelectRoom: (roomId: string) => void;
   onDeleteRoom?: (roomId: string) => void;
+  onEditProfile?: () => void;
   onApplyMessage?: (message: Message, targetType: MessageApplyTarget) => void;
 };
 
@@ -37,6 +38,7 @@ export function ChatView({
   onSendMessage,
   onSelectRoom,
   onDeleteRoom,
+  onEditProfile,
   onApplyMessage,
 }: ChatViewProps) {
   const [messageText, setMessageText] = useState('');
@@ -147,10 +149,10 @@ export function ChatView({
     <div className={viewClassName}>
       <aside className="room-list">
         <div className="room-list-header">
-          <div className="profile-pill">
+          <button className="profile-pill" onClick={onEditProfile} type="button">
             <span>{profile.image.startsWith('data:') ? <img src={profile.image} alt="" /> : profile.image}</span>
             <strong>{profile.nickname}</strong>
-          </div>
+          </button>
           <div className="room-list-title">
             <p>채팅방</p>
             <small>{rooms.length > 0 ? `${rooms.length}개의 계획 노트` : '새 계획을 시작해보세요'}</small>
