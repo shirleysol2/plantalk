@@ -14,6 +14,7 @@ import {
   createRoom,
   deleteAnalysisCandidate,
   holdAnalysisCandidate,
+  joinRoomAsMember,
 } from './services/roomActions';
 import { appendRemoteInfoLog, loadRemoteRoom, saveRemoteRoom } from './services/remoteRooms';
 import { appendInfoLog, findRoomByShareCode, loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
@@ -63,7 +64,12 @@ export default function App() {
 
     const linkedRoom = findRoomByShareCode(rooms, roomCode);
     if (linkedRoom) {
-      setActiveRoomId(linkedRoom.id);
+      const joinedRoom = joinRoomAsMember(linkedRoom, { nickname: profile.nickname, userCode: profile.userCode });
+      if (joinedRoom !== linkedRoom) {
+        setRooms((current) => current.map((room) => (room.shareCode === joinedRoom.shareCode ? joinedRoom : room)));
+        void saveRemoteRoom(joinedRoom);
+      }
+      setActiveRoomId(joinedRoom.id);
       return;
     }
 
@@ -72,13 +78,15 @@ export default function App() {
     loadRemoteRoom(roomCode).then((remoteRoom) => {
       if (cancelled || !remoteRoom) return;
 
-      setRooms((current) => [remoteRoom, ...current.filter((room) => room.shareCode !== remoteRoom.shareCode)]);
-      setActiveRoomId(remoteRoom.id);
+      const joinedRoom = joinRoomAsMember(remoteRoom, { nickname: profile.nickname, userCode: profile.userCode });
+      setRooms((current) => [joinedRoom, ...current.filter((room) => room.shareCode !== joinedRoom.shareCode)]);
+      setActiveRoomId(joinedRoom.id);
+      void saveRemoteRoom(joinedRoom);
       logInfo({
         action: 'room_opened',
         userCode: profile.userCode,
-        roomCode: remoteRoom.shareCode,
-        message: `${profile.nickname}님이 공유 링크로 ${remoteRoom.title} 방을 열었어요.`,
+        roomCode: joinedRoom.shareCode,
+        message: `${profile.nickname}님이 공유 링크로 ${joinedRoom.title} 방을 열었어요.`,
       });
     });
 

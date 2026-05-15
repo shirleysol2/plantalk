@@ -9,6 +9,7 @@ import {
   getInitials,
   holdAnalysisCandidate,
   isMessageMineForUser,
+  joinRoomAsMember,
 } from './roomActions';
 import { analyzeMessageWithLocalAgent } from './planAnalysisAgent';
 import type { AnalysisCandidate, Message } from '../types';
@@ -128,6 +129,43 @@ describe('room actions', () => {
     expect(updated.tasks).toHaveLength(room.tasks.length);
     expect(updated.decisions).toHaveLength(room.decisions.length);
     expect(updated.budgetItems).toHaveLength(room.budgetItems.length);
+  });
+
+  it('adds new chat senders to room members and briefing member count', () => {
+    const room = createRoom({
+      title: '부산 주말여행',
+      destination: 'Busan',
+      period: '6월 7일~6월 8일',
+      nickname: '솔',
+      userCode: 'user_abc123',
+    });
+
+    const updated = addMessageToRoom(room, {
+      nickname: '민지',
+      userCode: 'user_mj',
+      text: '토요일 오전 일정 확인하자',
+    });
+
+    expect(updated.joinedUserCodes).toEqual(['user_abc123', 'user_mj']);
+    expect(updated.members).toContainEqual(expect.objectContaining({ name: '민지', role: '참여자' }));
+    expect(updated.finalPlan.members).toBe('2명');
+  });
+
+  it('adds shared-link visitors to room members once without duplicating them', () => {
+    const room = createRoom({
+      title: '부산 주말여행',
+      destination: 'Busan',
+      period: '6월 7일~6월 8일',
+      nickname: '솔',
+      userCode: 'user_abc123',
+    });
+
+    const joined = joinRoomAsMember(room, { nickname: '민지', userCode: 'user_mj' });
+    const joinedAgain = joinRoomAsMember(joined, { nickname: '민지', userCode: 'user_mj' });
+
+    expect(joinedAgain.joinedUserCodes).toEqual(['user_abc123', 'user_mj']);
+    expect(joinedAgain.members.filter((member) => member.name === '민지')).toHaveLength(1);
+    expect(joinedAgain.finalPlan.members).toBe('2명');
   });
 
   it('keeps completion hints in candidates until the user confirms them', () => {

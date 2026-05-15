@@ -34,6 +34,11 @@ type AnalyzeRoomInput = {
   summaryStyle?: string;
 };
 
+type RoomMemberInput = {
+  nickname: string;
+  userCode: string;
+};
+
 export function getInitials(name: string) {
   const trimmed = name.trim();
 
@@ -139,12 +144,39 @@ export function addMessageToRoom(room: ChatRoom, { nickname, userCode, text, sum
     })),
   ];
 
+  const roomWithMember = userCode ? joinRoomAsMember(room, { nickname, userCode }) : room;
+
   return updateCandidateReviewStatus({
-    ...room,
+    ...roomWithMember,
     lastMessage: cleanText,
-    messages: [...room.messages, message],
+    messages: [...roomWithMember.messages, message],
     analysisCandidates,
   }, summaryStyle);
+}
+
+export function joinRoomAsMember(room: ChatRoom, { nickname, userCode }: RoomMemberInput): ChatRoom {
+  const joinedUserCodes = room.joinedUserCodes.includes(userCode) ? room.joinedUserCodes : [...room.joinedUserCodes, userCode];
+  const members = room.members.some((member) => member.name === nickname)
+    ? room.members
+    : [
+        ...room.members,
+        {
+          id: nextId(room.members),
+          name: nickname,
+          initials: getInitials(nickname),
+          role: '참여자',
+        },
+      ];
+
+  return {
+    ...room,
+    joinedUserCodes,
+    members,
+    finalPlan: {
+      ...room.finalPlan,
+      members: `${members.length}명`,
+    },
+  };
 }
 
 export function applyMessageToRoom(room: ChatRoom, { message, target, nickname, summaryStyle }: ApplyMessageInput): ChatRoom {
