@@ -228,6 +228,7 @@ button {
 .side-panel {
   position: relative;
   z-index: 1;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -1041,12 +1042,14 @@ h3 {
 
 .panel-view {
   display: block;
+  min-width: 0;
 }
 
 .plan-note,
 .settings-view {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .panel-heading {
@@ -1198,6 +1201,35 @@ h3 {
   line-height: 1.5;
 }
 
+.travel-briefing-list {
+  display: grid;
+  gap: 8px;
+}
+
+.travel-briefing-list div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 2px solid #1f1d1b;
+  border-radius: 16px;
+  padding: 11px 12px;
+  background: rgba(255, 253, 248, 0.92);
+  color: #1f1d1b;
+}
+
+.travel-briefing-list span {
+  color: #ff6f59;
+  font-size: 12px;
+  font-weight: 1000;
+}
+
+.travel-briefing-list strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
 .briefing-metrics {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1321,20 +1353,25 @@ h3 {
 }
 
 .link-history-card {
+  min-width: 0;
   background: #fffdf8;
 }
 
 .link-history-list {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .link-history-list a {
   display: grid;
   gap: 5px;
+  min-width: 0;
+  max-width: 100%;
   border: 2px solid #1f1d1b;
   border-radius: 18px;
   padding: 12px;
+  overflow: hidden;
   background: #fff;
   color: #1f1d1b;
   text-decoration: none;
@@ -1350,8 +1387,14 @@ h3 {
   overflow: hidden;
   color: #655c50;
   font-weight: 800;
+  overflow-wrap: anywhere;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.link-history-list strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .detail-toggle-card {

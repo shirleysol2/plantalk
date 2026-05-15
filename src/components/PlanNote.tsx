@@ -90,8 +90,9 @@ export function PlanNote({
   const validBudgetCount = budgetItems.filter((item) => item.amount !== '0원').length;
   const hasBriefedContent =
     confirmedScheduleCount + confirmedTaskCount + confirmedDecisionCount + validBudgetCount + linkItems.length > 0;
+  const travelBriefing = buildTravelBriefing(room, scheduleItems, decisions);
   const briefingSummary = hasBriefedContent
-    ? `${room.destination} 계획에 일정 ${confirmedScheduleCount}개, 할 일 ${confirmedTaskCount}개, 결정 ${confirmedDecisionCount}개, 예산 ${validBudgetCount}개, 링크 ${linkItems.length}개가 정리되어 있어요. 핵심 내용만 아래에 모아뒀어요.`
+    ? `${room.destination} 계획에서 확정된 날짜, 장소, 숙소와 일차별 일정을 채팅 기준으로 정리했어요. 검토 중인 내용은 아래 분석 후보에서 따로 확인할 수 있어요.`
     : finalPlan.summary;
   const briefingShareText = hasBriefedContent
     ? `${room.title} 브리핑: 일정 ${confirmedScheduleCount}, 할 일 ${confirmedTaskCount}, 결정 ${confirmedDecisionCount}, 예산 ${validBudgetCount}, 링크 ${linkItems.length}`
@@ -174,6 +175,20 @@ export function PlanNote({
             </div>
           </div>
           <p className="briefing-summary">{briefingSummary}</p>
+          <div className="travel-briefing-list" aria-label="여행 브리핑 핵심 정보">
+            <div>
+              <span>확정 날짜</span>
+              <strong>{travelBriefing.date}</strong>
+            </div>
+            <div>
+              <span>장소</span>
+              <strong>{travelBriefing.place}</strong>
+            </div>
+            <div>
+              <span>숙소</span>
+              <strong>{travelBriefing.stay}</strong>
+            </div>
+          </div>
           <div className="briefing-metrics" aria-label="브리핑 요약 지표">
             <span>
               <strong>{confirmedScheduleCount}</strong>
@@ -197,7 +212,7 @@ export function PlanNote({
             </span>
           </div>
           <div className="day-brief-list">
-            {finalPlan.days.slice(0, 6).map((day) => (
+            {travelBriefing.itinerary.map((day) => (
               <article className="day-brief" key={day.id}>
                 <span>{day.day}</span>
                 <strong>{day.title}</strong>
@@ -472,4 +487,64 @@ export function PlanNote({
       )}
     </div>
   );
+}
+
+function buildTravelBriefing(room: ChatRoom, scheduleItems: ScheduleItem[], decisions: DecisionItem[]) {
+  const sourceTexts = room.messages
+    .filter((message) => message.sender !== 'Plink' && message.sender !== 'PlanTalk')
+    .map((message) => message.text.replace(/https?:\/\/[^\s<>"']+/g, '').trim())
+    .filter(Boolean);
+  const stay =
+    decisions.find((decision) => /숙소|호텔|펜션|airbnb|에어비앤비/i.test(decision.question) && decision.state !== '대화 전')
+      ?.question ??
+    sourceTexts.find((text) => /숙소|호텔|펜션|airbnb|에어비앤비/i.test(text) && /확정|예약|정하|하자|좋/.test(text)) ??
+    '대화에서 아직 확정 전';
+  const confirmedSchedules = scheduleItems.filter((item) => item.status !== '대화 필요');
+  const dayPlans = collectDayPlans(sourceTexts);
+  const fallbackPlans = confirmedSchedules.slice(0, 4).map((item, index) => ({
+    id: `schedule-${item.id}`,
+    day: dayLabelFromText(`${item.date} ${item.title}`) ?? `${index + 1}일차`,
+    title: item.title,
+    route: `${item.date} · ${item.status}`,
+    highlights: ['일정', item.status],
+  }));
+
+  return {
+    date: room.period || room.finalPlan.period,
+    place: room.destination,
+    stay: compactText(stay, 42),
+    itinerary: dayPlans.length > 0 ? dayPlans : fallbackPlans.length > 0 ? fallbackPlans : room.finalPlan.days.slice(0, 4),
+  };
+}
+
+function collectDayPlans(texts: string[]) {
+  return texts
+    .map((text, index) => {
+      const day = dayLabelFromText(text);
+      if (!day) return null;
+      return {
+        id: `message-${index}`,
+        day,
+        title: compactText(text, 34),
+        route: '채팅에서 언급된 일정',
+        highlights: ['채팅 기반', /확정|하자|좋/.test(text) ? '확정 후보' : '일정'],
+      };
+    })
+    .filter((item): item is { id: string; day: string; title: string; route: string; highlights: string[] } => Boolean(item));
+}
+
+function dayLabelFromText(text: string) {
+  if (/1일차|첫날|첫째날|첫째 날/.test(text)) return '1일차';
+  if (/2일차|둘째날|둘째 날/.test(text)) return '2일차';
+  if (/3일차|셋째날|셋째 날/.test(text)) return '3일차';
+  if (/마지막날|마지막 날/.test(text)) return '마지막날';
+  if (/토요일|토욜/.test(text)) return '토요일';
+  if (/일요일|일욜/.test(text)) return '일요일';
+  if (/금요일|금욜/.test(text)) return '금요일';
+  return null;
+}
+
+function compactText(text: string, maxLength: number) {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength)}...` : cleaned;
 }
