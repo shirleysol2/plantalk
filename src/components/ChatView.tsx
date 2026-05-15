@@ -1,4 +1,4 @@
-import { CalendarDays, Link2, MessageCircle, MoreVertical, SendHorizontal, Sparkles } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Link2, MessageCircle, MoreVertical, SendHorizontal, Sparkles } from 'lucide-react';
 import { FormEvent, MouseEvent, PointerEvent, useEffect, useRef, useState } from 'react';
 import { NewRoomForm } from './NewRoomForm';
 import type { ChatRoom, Message, MessageApplyTarget, Profile } from '../types';
@@ -35,6 +35,7 @@ export function ChatView({
 }: ChatViewProps) {
   const [messageText, setMessageText] = useState('');
   const [openActionMessageId, setOpenActionMessageId] = useState<number | null>(null);
+  const [isMobileRoomOpen, setIsMobileRoomOpen] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -78,6 +79,21 @@ export function ChatView({
     closeActionMenu();
   };
 
+  const handleCreateRoom = (input: { title: string; destination: string; period: string }) => {
+    onCreateRoom(input);
+    setIsMobileRoomOpen(true);
+  };
+
+  const handleSelectRoom = (roomId: string) => {
+    onSelectRoom(roomId);
+    setIsMobileRoomOpen(true);
+  };
+
+  const handleBackToRooms = () => {
+    setIsMobileRoomOpen(false);
+    closeActionMenu();
+  };
+
   useEffect(() => {
     const handlePointerDownOutside = (event: globalThis.PointerEvent) => {
       if (!(event.target instanceof Element)) return;
@@ -103,23 +119,28 @@ export function ChatView({
     closeActionMenu();
   }, [activeRoomId]);
 
+  const viewClassName = `chat-view ${rooms.length > 0 ? 'has-rooms' : 'is-empty'} ${isMobileRoomOpen ? 'is-room-open' : ''}`;
+
   return (
-    <div className="chat-view">
+    <div className={viewClassName}>
       <aside className="room-list">
         <div className="room-list-header">
           <div className="profile-pill">
             <span>{profile.image.startsWith('data:') ? <img src={profile.image} alt="" /> : profile.image}</span>
             <strong>{profile.nickname}</strong>
           </div>
-          <p>채팅방</p>
+          <div className="room-list-title">
+            <p>채팅방</p>
+            <small>{rooms.length > 0 ? `${rooms.length}개의 계획 노트` : '새 계획을 시작해보세요'}</small>
+          </div>
         </div>
-        {rooms.length > 0 && <NewRoomForm compact ctaLabel="채팅방 만들기" onCreateRoom={onCreateRoom} />}
+        {rooms.length > 0 && <NewRoomForm compact ctaLabel="채팅방 만들기" onCreateRoom={handleCreateRoom} />}
         <div className="room-items">
           {rooms.map((room) => (
             <button
               className={`room-item ${activeRoomId === room.id ? 'active' : ''} ${room.coverTone}`}
               key={room.id}
-              onClick={() => onSelectRoom(room.id)}
+              onClick={() => handleSelectRoom(room.id)}
               type="button"
             >
               <span className="room-icon">{room.destination.slice(0, 1)}</span>
@@ -137,6 +158,9 @@ export function ChatView({
         {activeRoom ? (
           <>
             <header className="chat-header">
+              <button aria-label="채팅방 목록으로 돌아가기" className="mobile-back-button" onClick={handleBackToRooms} type="button">
+                <ArrowLeft size={18} />
+              </button>
               <div>
                 <p className="eyebrow">{activeRoom.subtitle}</p>
                 <h1>
@@ -150,6 +174,7 @@ export function ChatView({
               </div>
               <button aria-label="공유 링크 복사" className="share-room-button" onClick={() => onCopyRoomLink(activeRoom)} type="button">
                 <Link2 size={17} />
+                <span>공유</span>
               </button>
             </header>
 
@@ -228,7 +253,7 @@ export function ChatView({
             <Sparkles size={30} />
             <h1>새로운 계획 노트 만들기</h1>
             <p>첫 채팅방을 만들면 대화에서 일정, 할 일, 결정사항, 예산을 정리해드릴게요.</p>
-            <NewRoomForm ctaLabel="새로운 계획 노트 만들기" onCreateRoom={onCreateRoom} />
+            <NewRoomForm ctaLabel="새로운 계획 노트 만들기" onCreateRoom={handleCreateRoom} />
           </div>
         )}
       </section>
