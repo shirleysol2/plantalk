@@ -285,6 +285,29 @@ export function generateRoomBriefing(room: ChatRoom, { nickname, summaryStyle }:
   return refreshFinalPlan(appliedRoom, summaryStyle);
 }
 
+export function sharePlanBriefingToChat(room: ChatRoom, { nickname, summaryStyle }: AnalyzeRoomInput): ChatRoom {
+  const briefedRoom = generateRoomBriefing(room, { nickname, summaryStyle });
+  const briefingText = buildChatBriefingText(briefedRoom);
+  const message: Message = {
+    id: nextId(briefedRoom.messages),
+    sender: 'Plink',
+    initials: 'P',
+    time: formatTime(),
+    text: briefingText,
+    cta: {
+      label: '계획 노트 보기',
+      action: 'open_plan',
+    },
+    extraction: { label: '브리핑', tone: 'schedule' },
+  };
+
+  return updateCandidateReviewStatus({
+    ...briefedRoom,
+    lastMessage: briefingText,
+    messages: [...briefedRoom.messages, message],
+  }, summaryStyle);
+}
+
 export function holdAnalysisCandidate(room: ChatRoom, candidateId: number): ChatRoom {
   return updateCandidateReviewStatus({
     ...room,
@@ -595,6 +618,64 @@ function buildCandidateSummary(room: ChatRoom, candidateCount: number, summarySt
   if (summaryStyle === '짧고 빠르게') return `AI 분석 후보 ${candidateCount}개가 검토 대기 중입니다.`;
   if (summaryStyle === '결정사항 위주') return `결정에 영향을 줄 AI 분석 후보 ${candidateCount}개를 확인해야 합니다.`;
   return `${room.destination} 대화에서 AI 분석 후보 ${candidateCount}개를 찾았어요. 확정하면 계획 노트와 브리핑에 반영됩니다.`;
+}
+
+function buildChatBriefingText(room: ChatRoom) {
+  const confirmedSchedule = room.scheduleItems.filter((item) => item.status !== '대화 필요');
+  const confirmedTasks = room.tasks.filter((task) => task.title !== '친구들에게 채팅방 링크 공유');
+  const confirmedDecisions = room.decisions.filter((decision) => decision.state !== '대화 전');
+  const confirmedBudgets = room.budgetItems.filter((item) => item.amount !== '0원');
+  const linkItems = room.linkItems ?? [];
+  const stay =
+    confirmedDecisions.find((decision) => /숙소|호텔|펜션|airbnb|에어비앤비/i.test(decision.question))?.question ??
+    room.messages
+      .map((message) => message.text)
+      .find((text) => /숙소|호텔|펜션|airbnb|에어비앤비/i.test(text) && /확정|예약|정하|하자|좋/.test(text));
+  const dayLines = buildBriefingDayLines(room, confirmedSchedule);
+  const lines = [
+    `${room.title} 브리핑을 정리했어요.`,
+    `확정 날짜: ${room.period || room.finalPlan.period}`,
+    `장소: ${room.destination}`,
+    `숙소: ${stay ? compactBriefingText(stay, 42) : '아직 확정 전'}`,
+    ...dayLines,
+    `정리된 항목: 일정 ${confirmedSchedule.length}개 · 할 일 ${confirmedTasks.length}개 · 결정 ${confirmedDecisions.length}개 · 예산 ${confirmedBudgets.length}개 · 링크 ${linkItems.length}개`,
+  ];
+
+  return lines.join('\n');
+}
+
+function buildBriefingDayLines(room: ChatRoom, confirmedSchedule: ChatRoom['scheduleItems']) {
+  const messagePlans = room.messages
+    .filter((message) => message.sender !== 'Plink' && message.sender !== 'PlanTalk')
+    .map((message) => message.text.replace(/https?:\/\/[^\s<>"']+/g, '').trim())
+    .map((text) => {
+      const day = inferBriefingDayLabel(text);
+      return day ? `${day}: ${compactBriefingText(text, 42)}` : null;
+    })
+    .filter((line): line is string => Boolean(line));
+
+  if (messagePlans.length > 0) return messagePlans.slice(0, 4);
+
+  return confirmedSchedule.slice(0, 4).map((item, index) => {
+    const day = inferBriefingDayLabel(`${item.date} ${item.title}`) ?? `${index + 1}일차`;
+    return `${day}: ${compactBriefingText(item.title, 42)}`;
+  });
+}
+
+function inferBriefingDayLabel(text: string) {
+  if (/1일차|첫날|첫째날|첫째 날/.test(text)) return '1일차';
+  if (/2일차|둘째날|둘째 날/.test(text)) return '2일차';
+  if (/3일차|셋째날|셋째 날/.test(text)) return '3일차';
+  if (/마지막날|마지막 날/.test(text)) return '마지막날';
+  if (/금요일|금욜/.test(text)) return '금요일';
+  if (/토요일|토욜/.test(text)) return '토요일';
+  if (/일요일|일욜/.test(text)) return '일요일';
+  return null;
+}
+
+function compactBriefingText(text: string, maxLength: number) {
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength)}...` : cleaned;
 }
 
 function inferExtraction(text: string): Message['extraction'] {

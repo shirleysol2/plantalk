@@ -702,6 +702,10 @@ h3 {
 }
 
 .chat-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
   margin: 14px 18px 0;
   padding: 12px 14px;
   border: 3px solid #1f1d1b;
@@ -710,6 +714,18 @@ h3 {
   color: #fffdf8;
   font-size: 14px;
   font-weight: 800;
+}
+
+.plan-briefing-button {
+  min-height: 32px;
+  border: 1px solid rgba(255, 253, 248, 0.78);
+  border-radius: 999px;
+  padding: 0 11px;
+  background: #fffdf8;
+  color: #1f1d1b;
+  font-size: 12px;
+  font-weight: 1000;
+  white-space: nowrap;
 }
 
 .message-list {
@@ -800,6 +816,8 @@ h3 {
 }
 
 .message-bubble {
+  display: grid;
+  gap: 10px;
   border: 2px solid #1f1d1b;
   padding: 12px 14px;
   border-radius: 22px 22px 22px 7px;
@@ -808,6 +826,22 @@ h3 {
   line-height: 1.45;
   box-shadow: 4px 4px 0 rgba(31, 29, 27, 0.16);
   font-weight: 700;
+}
+
+.message-bubble > span {
+  white-space: pre-line;
+}
+
+.message-cta-button {
+  width: fit-content;
+  min-height: 34px;
+  border: 1px solid var(--plink-line);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: var(--plink-coral);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 1000;
 }
 
 .message-bubble.mine {

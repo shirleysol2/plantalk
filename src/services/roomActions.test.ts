@@ -12,6 +12,7 @@ import {
   isBriefingCommand,
   isMessageMineForUser,
   joinRoomAsMember,
+  sharePlanBriefingToChat,
   syncRoomMembersFromMessages,
 } from './roomActions';
 import { analyzeMessageWithLocalAgent } from './planAnalysisAgent';
@@ -216,6 +217,35 @@ describe('room actions', () => {
       ]),
     );
     expect(briefed.analysisCandidates.every((candidate) => candidate.status !== 'pending')).toBe(true);
+  });
+
+  it('lets Plink share the current briefing back into the chat with a plan CTA', () => {
+    const room = createRoom({
+      title: '강릉 여행',
+      destination: '강릉',
+      period: '5/29-5/31',
+      nickname: '솔',
+      userCode: 'user_sol',
+    });
+    const withPlanTalk = addMessageToRoom(room, {
+      nickname: '솔',
+      userCode: 'user_sol',
+      text: '첫날은 짬뽕밥 먹고 마지막날은 더덕향으로 하자',
+    });
+
+    const shared = sharePlanBriefingToChat(withPlanTalk, { nickname: '솔', summaryStyle: '꼼꼼하게' });
+    const plinkMessage = shared.messages.at(-1);
+
+    expect(plinkMessage).toEqual(
+      expect.objectContaining({
+        sender: 'Plink',
+        cta: { label: '계획 노트 보기', action: 'open_plan' },
+        extraction: { label: '브리핑', tone: 'schedule' },
+      }),
+    );
+    expect(plinkMessage?.text).toContain('확정 날짜: 5/29-5/31');
+    expect(plinkMessage?.text).toContain('장소: 강릉');
+    expect(plinkMessage?.text).toContain('1일차');
   });
 
   it('adds shared-link visitors to room members once without duplicating them', () => {

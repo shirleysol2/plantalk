@@ -16,6 +16,8 @@ type ChatViewProps = {
   onSelectRoom: (roomId: string) => void;
   onDeleteRoom?: (roomId: string) => void;
   onEditProfile?: () => void;
+  onRequestPlanBriefing?: () => void;
+  onOpenPlanNote?: () => void;
   onApplyMessage?: (message: Message, targetType: MessageApplyTarget) => void;
 };
 
@@ -39,6 +41,8 @@ export function ChatView({
   onSelectRoom,
   onDeleteRoom,
   onEditProfile,
+  onRequestPlanBriefing,
+  onOpenPlanNote,
   onApplyMessage,
 }: ChatViewProps) {
   const [messageText, setMessageText] = useState('');
@@ -230,6 +234,9 @@ export function ChatView({
             <div className="chat-summary">
               <Sparkles size={17} />
               <span>대화가 자연스럽게 일정, 할 일, 결정사항으로 정리되고 있어요.</span>
+              <button className="plan-briefing-button" onClick={onRequestPlanBriefing} type="button">
+                우리 계획 보기
+              </button>
             </div>
 
             <label className="chat-search">
@@ -262,7 +269,14 @@ export function ChatView({
                     <div className="message-stack">
                       {!isMine && <span className="sender">{displaySender(message.sender)}</span>}
                       <div className="message-action-line">
-                        <div className={`message-bubble ${isMine ? 'mine' : ''}`}>{message.text}</div>
+                        <div className={`message-bubble ${isMine ? 'mine' : ''}`}>
+                          <span>{message.text}</span>
+                          {message.cta?.action === 'open_plan' && (
+                            <button className="message-cta-button" onClick={onOpenPlanNote} type="button">
+                              {message.cta.label}
+                            </button>
+                          )}
+                        </div>
                         <button
                           aria-expanded={openActionMessageId === message.id}
                           aria-haspopup="menu"

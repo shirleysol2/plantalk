@@ -17,6 +17,7 @@ import {
   holdAnalysisCandidate,
   isBriefingCommand,
   joinRoomAsMember,
+  sharePlanBriefingToChat,
 } from './services/roomActions';
 import { appendRemoteInfoLog, loadRemoteRoom, saveRemoteRoom } from './services/remoteRooms';
 import { appendInfoLog, findRoomByShareCode, loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
@@ -230,6 +231,16 @@ export default function App() {
     updateActiveRoom((room) => generateRoomBriefing(room, { nickname: profile.nickname, summaryStyle }));
   };
 
+  const handleSharePlanBriefing = () => {
+    if (!profile) return;
+    updateActiveRoom((room) => sharePlanBriefingToChat(room, { nickname: profile.nickname, summaryStyle }));
+  };
+
+  const handleOpenPlanNote = () => {
+    setActiveTab('plan');
+    setActivePanel('plan');
+  };
+
   const handleSummaryStyleChange = (style: string) => {
     setSummaryStyle(style);
     if (!profile || !activeRoomId) return;
@@ -278,6 +289,8 @@ export default function App() {
           onSelectRoom={setActiveRoomId}
           onDeleteRoom={handleDeleteRoom}
           onEditProfile={handleEditProfile}
+          onRequestPlanBriefing={handleSharePlanBriefing}
+          onOpenPlanNote={handleOpenPlanNote}
         />
       </section>
 

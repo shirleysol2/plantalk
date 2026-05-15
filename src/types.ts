@@ -10,6 +10,10 @@ export type Message = {
   time: string;
   text: string;
   mine?: boolean;
+  cta?: {
+    label: string;
+    action: 'open_plan';
+  };
   extraction?: {
     label: string;
     tone: 'schedule' | 'decision' | 'budget' | 'task';
