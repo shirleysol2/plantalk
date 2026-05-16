@@ -51,6 +51,11 @@ function normalizeProfile(profile: Profile): Profile {
   };
 }
 
+/** Detect schedule items that were mis-parsed from duration phrases like "2시간 정도 쉬자" → date="2시" */
+function isDurationMisparsed(item: ChatRoom['scheduleItems'][number]): boolean {
+  return /\d+시간/.test(item.title) && /^\d{1,2}시$/.test(item.date);
+}
+
 function normalizeRoom(room: ChatRoom): ChatRoom {
   const shareCode = room.shareCode ?? createShareCode('room');
   const createdByUserCode = room.createdByUserCode ?? 'user_legacy';
@@ -62,6 +67,8 @@ function normalizeRoom(room: ChatRoom): ChatRoom {
     joinedUserCodes: room.joinedUserCodes ?? [createdByUserCode],
     analysisCandidates: room.analysisCandidates ?? [],
     linkItems: room.linkItems ?? [],
+    // Auto-clean previously mis-parsed duration items (e.g. "2시간 정도 쉬자" stored with date="2시")
+    scheduleItems: (room.scheduleItems ?? []).filter((item) => !isDurationMisparsed(item)),
   });
 }
 

@@ -82,17 +82,20 @@ export function PlanNote({
   });
   const [activeNoteTab, setActiveNoteTab] = useState<NoteTab>('briefing');
   const [showDetails, setShowDetails] = useState(false);
-  const total = budgetItems.reduce((sum, item) => sum + Number(item.amount.replace(/[^0-9]/g, '')), 0);
+  const total = budgetItems.reduce((sum, item) => sum + parseKoreanAmount(item.amount), 0);
   const openCandidates = analysisCandidates.filter((candidate) => candidate.status !== 'confirmed');
-  const confirmedScheduleCount = scheduleItems.filter((item) => item.status !== '대화 필요').length;
-  const confirmedTaskCount = tasks.filter((task) => task.title !== '친구들에게 채팅방 링크 공유').length;
-  const confirmedDecisionCount = decisions.filter((decision) => decision.state !== '대화 전').length;
-  const validBudgetCount = budgetItems.filter((item) => item.amount !== '0원').length;
+  const confirmedSchedules = scheduleItems.filter((item) => item.status !== '대화 필요');
+  const confirmedTasks = tasks.filter((task) => task.title !== '친구들에게 채팅방 링크 공유');
+  const confirmedDecisions = decisions.filter((decision) => decision.state !== '대화 전');
+  const validBudgets = budgetItems.filter((item) => item.amount !== '0원');
+  const confirmedScheduleCount = confirmedSchedules.length;
+  const confirmedTaskCount = confirmedTasks.length;
+  const confirmedDecisionCount = confirmedDecisions.length;
+  const validBudgetCount = validBudgets.length;
   const hasBriefedContent =
     confirmedScheduleCount + confirmedTaskCount + confirmedDecisionCount + validBudgetCount + linkItems.length > 0;
-  const travelBriefing = buildTravelBriefing(room, scheduleItems, decisions);
   const briefingSummary = hasBriefedContent
-    ? `${room.destination} 계획에서 확정된 날짜, 장소, 숙소와 일차별 일정을 채팅 기준으로 정리했어요. 검토 중인 내용은 아래 분석 후보에서 따로 확인할 수 있어요.`
+    ? `${room.destination} 계획에서 일정 ${confirmedScheduleCount}개, 할 일 ${confirmedTaskCount}개, 결정 ${confirmedDecisionCount}개, 예산 ${validBudgetCount}개가 정리됐어요.`
     : finalPlan.summary;
   const briefingShareText = hasBriefedContent
     ? `${room.title} 브리핑: 일정 ${confirmedScheduleCount}, 할 일 ${confirmedTaskCount}, 결정 ${confirmedDecisionCount}, 예산 ${validBudgetCount}, 링크 ${linkItems.length}`
@@ -118,8 +121,8 @@ export function PlanNote({
   return (
     <div className="plan-note">
       <div className="panel-heading">
-        <p className="eyebrow">방금 정리된</p>
-        <h2>{room.destination} 일정표</h2>
+        <p className="eyebrow">지금 정리 중인</p>
+        <h2>{room.destination} 계획 노트</h2>
         <button aria-label="공유 링크 복사" className="inline-link-button" onClick={() => onCopyRoomLink(room)} type="button">
           <Link2 size={16} />
         </button>
@@ -175,20 +178,68 @@ export function PlanNote({
             </div>
           </div>
           <p className="briefing-summary">{briefingSummary}</p>
-          <div className="travel-briefing-list" aria-label="여행 브리핑 핵심 정보">
-            <div>
-              <span>확정 날짜</span>
-              <strong>{travelBriefing.date}</strong>
+          {hasBriefedContent && (
+            <div className="dynamic-summary">
+              {confirmedSchedules.length > 0 && (
+                <div className="summary-group">
+                  <span className="summary-badge schedule">📅 일정</span>
+                  {sortAndGroupScheduleItems(confirmedSchedules).slice(0, 4).map(({ date, items }) => (
+                    <div className="schedule-time-group" key={date}>
+                      <span className="schedule-time-label">{date}</span>
+                      <div className="schedule-time-items">
+                        {items.map((item) => (
+                          <div className="summary-row" key={item.id}>
+                            <strong>{item.title}</strong>
+                            <em>{item.status}</em>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {confirmedTasks.length > 0 && (
+                <div className="summary-group">
+                  <span className="summary-badge task">✅ 할 일 ({confirmedTasks.filter((t) => t.done).length}/{confirmedTasks.length})</span>
+                  {confirmedTasks.slice(0, 3).map((task) => (
+                    <div className={`summary-row checklist-row${task.done ? ' done' : ''}`} key={task.id}>
+                      <span>{task.done ? '✓' : '○'}</span>
+                      <strong>{task.title}</strong>
+                      <small>{task.owner}</small>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {confirmedDecisions.length > 0 && (
+                <div className="summary-group">
+                  <span className="summary-badge decision">🗳️ 결정</span>
+                  {confirmedDecisions.slice(0, 3).map((decision) => (
+                    <div className="summary-row" key={decision.id}>
+                      <strong>{decision.question}</strong>
+                      <em className={decision.state === '확정' ? 'confirmed' : ''}>{decision.state}</em>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {validBudgets.length > 0 && (
+                <div className="summary-group">
+                  <span className="summary-badge budget">💰 예산</span>
+                  {validBudgets.slice(0, 3).map((item) => (
+                    <div className="summary-row" key={item.id}>
+                      <span>{item.category}</span>
+                      <strong>{item.amount}</strong>
+                    </div>
+                  ))}
+                  {total > 0 && (
+                    <div className="summary-row budget-total-row">
+                      <span>합계</span>
+                      <strong>{total.toLocaleString('ko-KR')}원</strong>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <div>
-              <span>장소</span>
-              <strong>{travelBriefing.place}</strong>
-            </div>
-            <div>
-              <span>숙소</span>
-              <strong>{travelBriefing.stay}</strong>
-            </div>
-          </div>
+          )}
           <div className="briefing-metrics" aria-label="브리핑 요약 지표">
             <span>
               <strong>{confirmedScheduleCount}</strong>
@@ -210,20 +261,6 @@ export function PlanNote({
               <strong>{linkItems.length}</strong>
               링크
             </span>
-          </div>
-          <div className="day-brief-list">
-            {travelBriefing.itinerary.map((day) => (
-              <article className="day-brief" key={day.id}>
-                <span>{day.day}</span>
-                <strong>{day.title}</strong>
-                <p>{day.route}</p>
-                <div>
-                  {day.highlights.map((highlight) => (
-                    <em key={highlight}>{highlight}</em>
-                  ))}
-                </div>
-              </article>
-            ))}
           </div>
           <div className="share-briefing">
             <Send size={16} />
@@ -260,29 +297,67 @@ export function PlanNote({
             브리핑
           </button>
         </div>
+
+        {/* 확정된 항목 한 문장 요약 */}
+        {(() => {
+          const confirmed = analysisCandidates.filter((c) => c.status === 'confirmed');
+          if (confirmed.length === 0) return null;
+          const counts: Record<string, number> = {};
+          for (const c of confirmed) {
+            const label = { schedule: '일정', task: '할 일', decision: '결정', budget: '예산', insight: '인사이트' }[c.type] ?? c.type;
+            counts[label] = (counts[label] ?? 0) + 1;
+          }
+          const summary = Object.entries(counts).map(([label, n]) => `${label} ${n}개`).join(', ');
+          const firstName = confirmed[0].title;
+          return (
+            <p className="candidate-confirmed-summary">
+              ✓ {firstName}{confirmed.length > 1 ? ` 외 ${confirmed.length - 1}개` : ''} — {summary}가 계획 노트에 반영됐어요.
+            </p>
+          );
+        })()}
+
         <div className="candidate-list">
           {openCandidates.length === 0 && <p className="candidate-empty">새로 검토할 후보가 없습니다.</p>}
-          {openCandidates.map((candidate) => (
-            <article className={`candidate-item ${candidate.status}`} key={candidate.id}>
-              <div>
-                <span className={`candidate-type ${candidate.type}`}>{candidate.type}</span>
-                <strong>{candidate.title}</strong>
-                <p>{candidate.detail}</p>
-                <small>{candidate.sourceText}</small>
+          {(() => {
+            const typeOrder: AnalysisCandidate['type'][] = ['schedule', 'task', 'decision', 'budget', 'insight'];
+            const typeLabel: Record<string, string> = { schedule: '📅 일정', task: '✅ 할 일', decision: '🤔 결정', budget: '💰 예산', insight: '💡 인사이트' };
+            const grouped = typeOrder
+              .map((type) => ({ type, items: openCandidates.filter((c) => c.type === type) }))
+              .filter(({ items }) => items.length > 0);
+
+            return grouped.map(({ type, items }) => (
+              <div className="candidate-group" key={type}>
+                <div className="candidate-group-header">
+                  <span className="candidate-group-label">{typeLabel[type]}</span>
+                  {items.length > 1 && (
+                    <button
+                      className="candidate-group-confirm-all"
+                      onClick={() => items.forEach((c) => onConfirmAnalysisCandidate?.(c.id))}
+                      type="button"
+                    >
+                      전체 확정
+                    </button>
+                  )}
+                </div>
+                {items.map((candidate) => (
+                  <article className={`candidate-item ${candidate.status}`} key={candidate.id}>
+                    <div>
+                      <strong>{candidate.title}</strong>
+                      <p>{candidate.detail}</p>
+                      <small>{candidate.sourceText}</small>
+                    </div>
+                    <div className="candidate-actions">
+                      <button onClick={() => onConfirmAnalysisCandidate?.(candidate.id)} type="button">확정</button>
+                      <button onClick={() => onHoldAnalysisCandidate?.(candidate.id)} type="button">
+                        {candidate.status === 'held' ? '다시 검토' : '보류'}
+                      </button>
+                      <button className="danger" onClick={() => onDeleteAnalysisCandidate?.(candidate.id)} type="button">삭제</button>
+                    </div>
+                  </article>
+                ))}
               </div>
-              <div className="candidate-actions">
-                <button onClick={() => onConfirmAnalysisCandidate?.(candidate.id)} type="button">
-                  확정
-                </button>
-                <button onClick={() => onHoldAnalysisCandidate?.(candidate.id)} type="button">
-                  {candidate.status === 'held' ? '다시 검토' : '보류'}
-                </button>
-                <button className="danger" onClick={() => onDeleteAnalysisCandidate?.(candidate.id)} type="button">
-                  삭제
-                </button>
-              </div>
-            </article>
-          ))}
+            ));
+          })()}
         </div>
       </section>
       )}
@@ -304,7 +379,7 @@ export function PlanNote({
               {renderSectionEditButton('schedule')}
             </div>
             <div className="timeline">
-              {scheduleItems.map((item) => (
+              {[...scheduleItems].sort((a, b) => parseScheduleMinutes(a.date) - parseScheduleMinutes(b.date)).map((item) => (
                 <div className="timeline-item" key={item.id}>
                   <input
                     aria-label="일정 날짜"
@@ -489,62 +564,74 @@ export function PlanNote({
   );
 }
 
-function buildTravelBriefing(room: ChatRoom, scheduleItems: ScheduleItem[], decisions: DecisionItem[]) {
-  const sourceTexts = room.messages
-    .filter((message) => message.sender !== 'Plink' && message.sender !== 'PlanTalk')
-    .map((message) => message.text.replace(/https?:\/\/[^\s<>"']+/g, '').trim())
-    .filter(Boolean);
-  const stay =
-    decisions.find((decision) => /숙소|호텔|펜션|airbnb|에어비앤비/i.test(decision.question) && decision.state !== '대화 전')
-      ?.question ??
-    sourceTexts.find((text) => /숙소|호텔|펜션|airbnb|에어비앤비/i.test(text) && /확정|예약|정하|하자|좋/.test(text)) ??
-    '대화에서 아직 확정 전';
-  const confirmedSchedules = scheduleItems.filter((item) => item.status !== '대화 필요');
-  const dayPlans = collectDayPlans(sourceTexts);
-  const fallbackPlans = confirmedSchedules.slice(0, 4).map((item, index) => ({
-    id: `schedule-${item.id}`,
-    day: dayLabelFromText(`${item.date} ${item.title}`) ?? `${index + 1}일차`,
-    title: item.title,
-    route: `${item.date} · ${item.status}`,
-    highlights: ['일정', item.status],
-  }));
+// ── Schedule sort & grouping helpers ────────────────────────────────────────
 
-  return {
-    date: room.period || room.finalPlan.period,
-    place: room.destination,
-    stay: compactText(stay, 42),
-    itinerary: dayPlans.length > 0 ? dayPlans : fallbackPlans.length > 0 ? fallbackPlans : room.finalPlan.days.slice(0, 4),
-  };
+/** Convert a date/time label to a sortable number (minutes since midnight) */
+function parseScheduleMinutes(date: string): number {
+  // 오후 N시 → PM
+  const pmMatch = date.match(/오후\s*(\d{1,2})시/);
+  if (pmMatch) {
+    const h = parseInt(pmMatch[1]);
+    return ((h === 12 ? 12 : h + 12) * 60);
+  }
+  // 오전 N시 → AM
+  const amMatch = date.match(/오전\s*(\d{1,2})시/);
+  if (amMatch) {
+    const h = parseInt(amMatch[1]);
+    return ((h === 12 ? 0 : h) * 60);
+  }
+  // N시 without AM/PM marker — treat as-is (0-23)
+  const hourMatch = date.match(/^(\d{1,2})시$/);
+  if (hourMatch) {
+    return parseInt(hourMatch[1]) * 60;
+  }
+  // Day-of-week: Mon–Sun → 1400–1820 (so they sort after clock times)
+  const days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+  const dayIdx = days.findIndex((d) => date.includes(d));
+  if (dayIdx >= 0) return 1400 + dayIdx * 60;
+  // Catch-all: unknown labels go last
+  return 9999;
 }
 
-function collectDayPlans(texts: string[]) {
-  return texts
-    .map((text, index) => {
-      const day = dayLabelFromText(text);
-      if (!day) return null;
-      return {
-        id: `message-${index}`,
-        day,
-        title: compactText(text, 34),
-        route: '채팅에서 언급된 일정',
-        highlights: ['채팅 기반', /확정|하자|좋/.test(text) ? '확정 후보' : '일정'],
-      };
-    })
-    .filter((item): item is { id: string; day: string; title: string; route: string; highlights: string[] } => Boolean(item));
+/**
+ * Parse Korean amount strings to a number.
+ * Handles: "36만원", "3.6만원", "360,000원", "360000원", "1억 2천만원", "5천원", "500원" etc.
+ */
+export function parseKoreanAmount(str: string): number {
+  if (!str || str === '0원' || str === '0') return 0;
+  const s = str.replace(/\s/g, '').replace(/,/g, '');
+  let total = 0;
+
+  const eok = s.match(/(\d+(?:\.\d+)?)억/);
+  const man = s.match(/(\d+(?:\.\d+)?)만/);
+  const cheon = s.match(/(\d+(?:\.\d+)?)천/);
+  const baek = s.match(/(\d+(?:\.\d+)?)백/);
+
+  if (eok) total += parseFloat(eok[1]) * 100_000_000;
+  if (man) total += parseFloat(man[1]) * 10_000;
+  if (cheon) total += parseFloat(cheon[1]) * 1_000;
+  if (baek) total += parseFloat(baek[1]) * 100;
+
+  if (total > 0) return Math.round(total);
+
+  // plain number fallback: "360000원", "500"
+  const plain = s.replace(/[^0-9]/g, '');
+  return plain ? Number(plain) : 0;
 }
 
-function dayLabelFromText(text: string) {
-  if (/1일차|첫날|첫째날|첫째 날/.test(text)) return '1일차';
-  if (/2일차|둘째날|둘째 날/.test(text)) return '2일차';
-  if (/3일차|셋째날|셋째 날/.test(text)) return '3일차';
-  if (/마지막날|마지막 날/.test(text)) return '마지막날';
-  if (/토요일|토욜/.test(text)) return '토요일';
-  if (/일요일|일욜/.test(text)) return '일요일';
-  if (/금요일|금욜/.test(text)) return '금요일';
-  return null;
+export function sortAndGroupScheduleItems<T extends { date: string; id: number; title: string }>(
+  items: T[],
+): Array<{ date: string; items: T[] }> {
+  const sorted = [...items].sort((a, b) => parseScheduleMinutes(a.date) - parseScheduleMinutes(b.date));
+  const groups: Array<{ date: string; items: T[] }> = [];
+  for (const item of sorted) {
+    const last = groups[groups.length - 1];
+    if (last && last.date === item.date) {
+      last.items.push(item);
+    } else {
+      groups.push({ date: item.date, items: [item] });
+    }
+  }
+  return groups;
 }
 
-function compactText(text: string, maxLength: number) {
-  const cleaned = text.replace(/\s+/g, ' ').trim();
-  return cleaned.length > maxLength ? `${cleaned.slice(0, maxLength)}...` : cleaned;
-}

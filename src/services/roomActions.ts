@@ -121,6 +121,9 @@ export function addMessageToRoom(room: ChatRoom, { nickname, userCode, text, sum
   const cleanText = text.trim();
   if (!cleanText) return room;
 
+  // @plink command messages are instructions, not plan content — skip analysis
+  const isCommand = /^@plink/i.test(cleanText);
+
   const message: Message = {
     id: nextId(room.messages),
     sender: nickname,
@@ -129,21 +132,22 @@ export function addMessageToRoom(room: ChatRoom, { nickname, userCode, text, sum
     time: formatTime(),
     text: cleanText,
     mine: true,
-    extraction: inferExtraction(cleanText),
+    extraction: isCommand ? { label: '@Plink', tone: 'decision' } : inferExtraction(cleanText),
   };
-
-  const analysisCandidates = [
-    ...(room.analysisCandidates ?? []),
-    ...localPlanAnalysisAgent.analyzeMessage({
-      message,
-      destination: room.destination,
-      nickname,
-      summaryStyle,
-    }).map((candidate, index) => ({
-      ...candidate,
-      id: nextId(room.analysisCandidates ?? []) + index,
-    })),
-  ];
+  const analysisCandidates = isCommand
+    ? (room.analysisCandidates ?? [])
+    : [
+        ...(room.analysisCandidates ?? []),
+        ...localPlanAnalysisAgent.analyzeMessage({
+          message,
+          destination: room.destination,
+          nickname,
+          summaryStyle,
+        }).map((candidate, index) => ({
+          ...candidate,
+          id: nextId(room.analysisCandidates ?? []) + index,
+        })),
+      ];
 
   const roomWithMember = userCode ? joinRoomAsMember(room, { nickname, userCode }) : room;
   const messages = [...roomWithMember.messages, message];
@@ -264,8 +268,340 @@ export function analyzeRoomConversation(room: ChatRoom, { nickname, summaryStyle
     : updateCandidateReviewStatus(nextRoom, summaryStyle);
 }
 
+export function applyPlinkOperations(
+  room: ChatRoom,
+  operations: import('./plinkBot').PlinkOperation[],
+  nickname: string,
+  summaryStyle?: string,
+): ChatRoom {
+  let r = room;
+
+  for (const op of operations) {
+    switch (op.type) {
+      case 'updateScheduleDate':
+        r = {
+          ...r,
+          scheduleItems: r.scheduleItems.map((i) =>
+            i.date === op.fromDate ? { ...i, date: op.toDate } : i,
+          ),
+        };
+        break;
+
+      case 'deleteByDate':
+        r = {
+          ...r,
+          scheduleItems: r.scheduleItems.filter((i) => i.date !== op.date),
+        };
+        break;
+
+      case 'deleteByKeyword': {
+        const kw = op.keyword;
+        r = {
+          ...r,
+          scheduleItems: op.section === 'schedule' || op.section === 'all'
+            ? r.scheduleItems.filter((i) => !i.title.includes(kw))
+            : r.scheduleItems,
+          tasks: op.section === 'task' || op.section === 'all'
+            ? r.tasks.filter((i) => !i.title.includes(kw))
+            : r.tasks,
+          decisions: op.section === 'decision' || op.section === 'all'
+            ? r.decisions.filter((i) => !i.question.includes(kw))
+            : r.decisions,
+        };
+        break;
+      }
+
+      case 'updateItemStatus': {
+        const kw = op.keyword;
+        const st = op.newStatus;
+        if (op.section === 'schedule') {
+          r = { ...r, scheduleItems: r.scheduleItems.map((i) => i.title.includes(kw) ? { ...i, status: st } : i) };
+        } else if (op.section === 'task') {
+          r = { ...r, tasks: r.tasks.map((i) => i.title.includes(kw) ? { ...i, done: st === '완료' || st === '확정' } : i) };
+        } else if (op.section === 'decision') {
+          r = { ...r, decisions: r.decisions.map((i) => i.question.includes(kw) ? { ...i, state: st } : i) };
+        }
+        break;
+      }
+
+      case 'updatePeriod':
+        r = { ...r, period: op.newPeriod };
+        break;
+
+      case 'updateDestination':
+        r = { ...r, destination: op.newDestination };
+        break;
+
+      case 'updateTitle':
+        r = { ...r, title: op.newTitle };
+        break;
+
+      case 'addDecision':
+        r = {
+          ...r,
+          decisions: [
+            ...r.decisions,
+            { id: nextId(r.decisions), question: op.question, options: op.options ?? [], state: op.state || '결정 필요' },
+          ],
+        };
+        break;
+
+      case 'addBudget':
+        r = {
+          ...r,
+          budgetItems: [
+            ...r.budgetItems.filter((i) => i.amount !== '0원'),
+            { id: nextId(r.budgetItems), category: op.category, amount: op.amount, note: op.note || '' },
+          ],
+        };
+        break;
+
+      case 'updateBudget': {
+        const kw = op.keyword;
+        r = {
+          ...r,
+          budgetItems: r.budgetItems.map((i) =>
+            i.category.includes(kw) || i.note.includes(kw)
+              ? { ...i, ...(op.newAmount ? { amount: op.newAmount } : {}), ...(op.newNote ? { note: op.newNote } : {}) }
+              : i,
+          ),
+        };
+        break;
+      }
+
+      case 'clearSection':
+        r = {
+          ...r,
+          scheduleItems: op.section === 'schedule' || op.section === 'all' ? [] : r.scheduleItems,
+          tasks: op.section === 'task' || op.section === 'all' ? [] : r.tasks,
+          decisions: op.section === 'decision' || op.section === 'all' ? [] : r.decisions,
+          budgetItems: op.section === 'budget' || op.section === 'all' ? [] : r.budgetItems,
+        };
+        break;
+
+      case 'addSchedule':
+        r = {
+          ...r,
+          scheduleItems: [
+            ...r.scheduleItems,
+            { id: nextId(r.scheduleItems), date: op.date, title: op.title, status: op.status || '후보' },
+          ],
+        };
+        break;
+
+      case 'addTask':
+        r = {
+          ...r,
+          tasks: [...r.tasks, { id: nextId(r.tasks), title: op.title, owner: nickname, done: false }],
+        };
+        break;
+
+      case 'renameItem': {
+        const kw = op.keyword;
+        if (op.section === 'schedule') {
+          r = { ...r, scheduleItems: r.scheduleItems.map((i) => i.title.includes(kw) ? { ...i, title: op.newTitle } : i) };
+        } else if (op.section === 'task') {
+          r = { ...r, tasks: r.tasks.map((i) => i.title.includes(kw) ? { ...i, title: op.newTitle } : i) };
+        } else if (op.section === 'decision') {
+          r = { ...r, decisions: r.decisions.map((i) => i.question.includes(kw) ? { ...i, question: op.newTitle } : i) };
+        }
+        break;
+      }
+    }
+  }
+
+  return refreshFinalPlan(r, summaryStyle);
+}
+
 export function isBriefingCommand(text: string) {
   return /(브리핑|정리해서\s*보여|정리해\s*줘|계획\s*정리|요약해\s*줘)/i.test(text.trim());
+}
+
+export function isPlinkMention(text: string) {
+  return /@plink/i.test(text);
+}
+
+export function handlePlinkMentionCommand(
+  room: ChatRoom,
+  { text, nickname, summaryStyle }: { text: string; nickname: string; summaryStyle?: string },
+): { room: ChatRoom; reply: string } {
+  const command = text.replace(/@plink\s*/i, '').trim();
+  let updatedRoom = room;
+  const changes: string[] = [];
+
+  // ── 1. 시각 변경: "2시 → 오후 2시로", "2시라고 되어 있는거 오후2시로 바꿔줘"
+  //   Strategy: find first plain "N시" + find (오전|오후) N시 anywhere after it
+  const plainTimeMatch = command.match(/(오전|오후)?\s*(\d{1,2})시(?!간)/);
+  const qualifiedTimeMatch = command.match(/(오전|오후)\s*(\d{1,2})시(?!간)/);
+  const isTimeChange =
+    plainTimeMatch &&
+    qualifiedTimeMatch &&
+    // "오후 N시" must appear AFTER the plain time in the string
+    command.indexOf(qualifiedTimeMatch[0]) > command.indexOf(plainTimeMatch[0]) + plainTimeMatch[0].length - 1 &&
+    // and the command contains a "change" intent word
+    /(바꿔|변경|수정|으로|로\s*해|로\s*바)/i.test(command);
+
+  if (isTimeChange && plainTimeMatch && qualifiedTimeMatch) {
+    const oldAmPm = plainTimeMatch[1];
+    const oldHour = plainTimeMatch[2];
+    const newAmPm = qualifiedTimeMatch[1];
+    const newHour = qualifiedTimeMatch[2];
+    const oldDate = oldAmPm ? `${oldAmPm} ${oldHour}시` : `${oldHour}시`;
+    const newDate = `${newAmPm} ${newHour}시`;
+    // Only apply if the two dates are meaningfully different
+    if (oldDate !== newDate) {
+      const count = updatedRoom.scheduleItems.filter((i) => i.date === oldDate).length;
+      updatedRoom = {
+        ...updatedRoom,
+        scheduleItems: updatedRoom.scheduleItems.map((item) =>
+          item.date === oldDate ? { ...item, date: newDate } : item,
+        ),
+      };
+      if (count > 0) changes.push(`일정 ${count}개의 시각을 "${oldDate}" → "${newDate}"로 변경했어요.`);
+      else changes.push(`"${oldDate}" 시각의 일정이 없어요. 현재 등록된 일정을 확인해 주세요.`);
+    }
+  }
+
+  // ── 2. 시각 기반 삭제: "N시에 기록된 것들 빼줘", "N시 항목 다 지워봐"
+  //   Matches a time first, then a remove-intent word
+  const timeDeleteMatch = !isTimeChange && command.match(
+    /(\d{1,2})시(?!간)[^]*?(삭제|지워|빼|제거|없애|치워|다\s*지|다\s*빼|모두\s*지|모두\s*빼)/,
+  );
+  if (timeDeleteMatch) {
+    const targetDate = `${timeDeleteMatch[1]}시`;
+    // Also match "오전 N시" / "오후 N시" variants
+    const ampmVariants = [`${targetDate}`, `오전 ${targetDate}`, `오후 ${targetDate}`];
+    const before = updatedRoom.scheduleItems.length;
+    updatedRoom = {
+      ...updatedRoom,
+      scheduleItems: updatedRoom.scheduleItems.filter((i) => !ampmVariants.some((v) => i.date === v || i.date.endsWith(targetDate))),
+    };
+    const deleted = before - updatedRoom.scheduleItems.length;
+    if (deleted > 0) changes.push(`"${targetDate}" 일정 항목 ${deleted}개를 삭제했어요.`);
+    else changes.push(`"${targetDate}" 시각의 일정이 없어요.`);
+  }
+
+  // ── 3. 키워드 기반 삭제: "부산 밀면 삭제", "X 지워줘/빼줘/없애줘"
+  const keywordDeleteMatch = !isTimeChange && !timeDeleteMatch && command.match(
+    /^(.+?)\s+(삭제|지워|빼줘|없애|제거|치워)/,
+  );
+  if (keywordDeleteMatch) {
+    const keyword = keywordDeleteMatch[1].trim();
+    const before = {
+      s: updatedRoom.scheduleItems.length,
+      t: updatedRoom.tasks.length,
+      d: updatedRoom.decisions.length,
+    };
+    updatedRoom = {
+      ...updatedRoom,
+      scheduleItems: updatedRoom.scheduleItems.filter((i) => !i.title.includes(keyword)),
+      tasks: updatedRoom.tasks.filter((i) => !i.title.includes(keyword)),
+      decisions: updatedRoom.decisions.filter((i) => !i.question.includes(keyword)),
+    };
+    const deleted =
+      (before.s - updatedRoom.scheduleItems.length) +
+      (before.t - updatedRoom.tasks.length) +
+      (before.d - updatedRoom.decisions.length);
+    if (deleted > 0) changes.push(`"${keyword}" 관련 항목 ${deleted}개를 삭제했어요.`);
+  }
+
+  // ── 4. 상태/확정 변경: "부산 밀면 확정", "X 완료로 바꿔"
+  const statusMatch = !isTimeChange && !timeDeleteMatch && !keywordDeleteMatch &&
+    command.match(/^(.+?)\s+(확정|완료|취소|보류|검토)(?:\s*으로|\s*로)?/);
+  if (statusMatch) {
+    const keyword = statusMatch[1].trim();
+    const newStatus = statusMatch[2];
+    let updated = 0;
+    updatedRoom = {
+      ...updatedRoom,
+      scheduleItems: updatedRoom.scheduleItems.map((i) => {
+        if (i.title.includes(keyword)) { updated++; return { ...i, status: newStatus }; }
+        return i;
+      }),
+      decisions: updatedRoom.decisions.map((d) => {
+        if (d.question.includes(keyword)) { updated++; return { ...d, state: newStatus === '확정' ? '확정' : newStatus }; }
+        return d;
+      }),
+      tasks: updatedRoom.tasks.map((t) => {
+        if (t.title.includes(keyword)) { updated++; return { ...t, done: newStatus === '완료' || newStatus === '확정' }; }
+        return t;
+      }),
+    };
+    if (updated > 0) changes.push(`"${keyword}" 항목을 "${newStatus}"로 변경했어요.`);
+  }
+
+  // ── 5. 여행지 변경: "제주도로 바꿔줘", "여행지 부산으로", "제주도 계획 노트로 바꿔줘"
+  const destinationMatch = !isTimeChange && !timeDeleteMatch && !keywordDeleteMatch && !statusMatch &&
+    command.match(/^(.{1,10}?)\s*(계획\s*노트로|으로|로)\s*(바꿔|변경|수정|해줘|해)/) ||
+    command.match(/(여행지|장소|목적지)\s*[은는을]?\s*(.{1,10}?)\s*(로|으로|으로\s*바꿔|로\s*바꿔|로\s*변경)/);
+  if (destinationMatch) {
+    const newDest = (destinationMatch[1] ?? destinationMatch[2] ?? '').replace(/\s*(계획|노트|여행|여행지|장소|목적지)\s*/g, '').trim();
+    if (newDest && newDest.length >= 2 && !/바꿔|변경|수정|삭제|추가/.test(newDest)) {
+      updatedRoom = { ...updatedRoom, destination: newDest };
+      changes.push(`여행지를 "${newDest}"(으)로 변경했어요.`);
+    }
+  }
+
+  // ── 5-1. 계획 기간 변경: "7/1 3박4일", "5/1~5/4"
+  const dateRangeMatch = command.match(/(\d{1,2})\/(\d{1,2})\s*[~\-]\s*(\d{1,2})\/(\d{1,2})/);
+  const periodChangeMatch = command.match(/(\d{1,2}\/\d{1,2})\s+(\d+박\d+일)/);
+  const startDateMatch = !isTimeChange && command.match(/(\d{1,2})\/(\d{1,2})\s+(\d+박)/);
+
+  if (dateRangeMatch) {
+    const [, m1, d1, m2, d2] = dateRangeMatch;
+    const newPeriod = `${m1}/${d1} - ${m2}/${d2}`;
+    updatedRoom = { ...updatedRoom, period: newPeriod };
+    changes.push(`여행 기간을 ${newPeriod}로 변경했어요.`);
+  } else if (periodChangeMatch) {
+    const [, startDate, nights] = periodChangeMatch;
+    const [m, d] = startDate.split('/').map(Number);
+    const nightCount = parseInt(nights);
+    const end = new Date(new Date().getFullYear(), m - 1, d + nightCount);
+    const newPeriod = `${m}/${d} - ${end.getMonth() + 1}/${end.getDate()} (${nights})`;
+    updatedRoom = { ...updatedRoom, period: newPeriod };
+    changes.push(`여행 기간을 ${newPeriod}로 변경했어요.`);
+  } else if (startDateMatch) {
+    const [, m, d, nights] = startDateMatch;
+    const nightCount = parseInt(nights);
+    const end = new Date(new Date().getFullYear(), parseInt(m) - 1, parseInt(d) + nightCount);
+    const newPeriod = `${m}/${d} - ${end.getMonth() + 1}/${end.getDate()} (${nights})`;
+    updatedRoom = { ...updatedRoom, period: newPeriod };
+    changes.push(`여행 기간을 ${newPeriod}로 변경했어요.`);
+  }
+
+  // ── 6. 제목 변경: "제목 바꿔줘 제주도 여름 여행", "계획 이름을 X로"
+  const titleMatch = !isTimeChange && !timeDeleteMatch && !keywordDeleteMatch && !statusMatch &&
+    command.match(/(제목|이름|타이틀)\s*[은는을]?\s*(.{2,20}?)\s*(로|으로|으로\s*바꿔|로\s*바꿔|로\s*변경)/);
+  if (titleMatch) {
+    const newTitle = titleMatch[2].trim();
+    if (newTitle) {
+      updatedRoom = { ...updatedRoom, title: newTitle };
+      changes.push(`계획 제목을 "${newTitle}"(으)로 변경했어요.`);
+    }
+  }
+
+  // ── 7. 일괄 계획 정리 (긴 텍스트 / 줄바꿈 여러 개)
+  const isBulkPlan = command.split('\n').length >= 3 || (command.length > 80 && /일정|계획|예약|숙소|이동/.test(command));
+  if (isBulkPlan) {
+    const briefedRoom = generateRoomBriefing(updatedRoom, { nickname, summaryStyle });
+    return { room: briefedRoom, reply: '계획 내용을 분석해서 계획 노트에 정리했어요.' };
+  }
+
+  const finalRoom = refreshFinalPlan(updatedRoom, summaryStyle);
+
+  if (changes.length > 0) {
+    return { room: finalRoom, reply: changes.join('\n') + '\n\n계획 노트에서 확인해 주세요.' };
+  }
+
+  // 인식 못한 경우 — 힌트 보여줌
+  return {
+    room: finalRoom,
+    reply: `명령을 이해하지 못했어요. 이렇게 말해보세요:\n• "제주도로 바꿔줘" (여행지 변경)\n• "기간 7/1~7/4로 바꿔줘"\n• "오후 3시에 한강 피크닉 추가해줘"\n• "밀면 삭제"\n• "공항 일정 확정"`,
+  };
+}
+
+function refreshFinalPlanPublic(room: ChatRoom, summaryStyle = '꼼꼼하게'): ChatRoom {
+  return refreshFinalPlan(room, summaryStyle);
 }
 
 export function generateRoomBriefing(room: ChatRoom, { nickname, summaryStyle }: AnalyzeRoomInput): ChatRoom {
@@ -324,9 +660,21 @@ export function deleteAnalysisCandidate(room: ChatRoom, candidateId: number): Ch
   });
 }
 
+function keywordSimilarity(a: string, b: string): number {
+  const words = (s: string) => new Set(s.toLowerCase().replace(/[()]/g, '').split(/\s+/).filter((w) => w.length > 1));
+  const wA = words(a);
+  const wB = words(b);
+  if (wA.size === 0 || wB.size === 0) return 0;
+  const overlap = [...wA].filter((w) => wB.has(w)).length;
+  return overlap / Math.min(wA.size, wB.size);
+}
+
 function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nickname: string): ChatRoom {
   if (candidate.type === 'schedule') {
-    if (room.scheduleItems.some((item) => item.title === candidate.title && item.status !== '대화 필요')) return room;
+    const isDuplicate = room.scheduleItems.some(
+      (item) => item.status !== '대화 필요' && (item.title === candidate.title || keywordSimilarity(item.title, candidate.title) > 0.6),
+    );
+    if (isDuplicate) return room;
     return {
       ...room,
       scheduleItems: [
@@ -342,7 +690,10 @@ function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nick
   }
 
   if (candidate.type === 'task') {
-    if (room.tasks.some((task) => task.title === candidate.title)) return room;
+    const isDuplicate = room.tasks.some(
+      (task) => task.title === candidate.title || keywordSimilarity(task.title, candidate.title) > 0.5,
+    );
+    if (isDuplicate) return room;
     return {
       ...room,
       tasks: [
@@ -359,7 +710,10 @@ function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nick
 
   if (candidate.type === 'decision' || candidate.type === 'insight') {
     const question = readableCandidateTitle(candidate);
-    if (room.decisions.some((decision) => decision.question === question && decision.state !== '대화 전')) return room;
+    const isDuplicate = room.decisions.some(
+      (decision) => decision.state !== '대화 전' && (decision.question === question || keywordSimilarity(decision.question, question) > 0.4),
+    );
+    if (isDuplicate) return room;
     return {
       ...room,
       decisions: [
@@ -375,7 +729,10 @@ function applyCandidateToRoom(room: ChatRoom, candidate: AnalysisCandidate, nick
   }
 
   if (candidate.type === 'budget') {
-    if (room.budgetItems.some((item) => item.category === candidate.title && item.amount === candidate.detail)) return room;
+    const isDuplicate = room.budgetItems.some(
+      (item) => keywordSimilarity(item.category, candidate.title) > 0.6 || (item.amount !== '0원' && item.amount === candidate.detail),
+    );
+    if (isDuplicate) return room;
     return {
       ...room,
       budgetItems: [
@@ -402,8 +759,8 @@ function readableCandidateTitle(candidate: AnalysisCandidate) {
 }
 
 function inferCandidateDate(title: string) {
-  const match = title.match(/월요일|화요일|수요일|목요일|금요일|토요일|일요일|오전|오후|Day\s?\d|[0-9]{1,2}시/);
-  return match?.[0] ?? '분석 확정';
+  const match = title.match(/월요일|화요일|수요일|목요일|금요일|토요일|일요일|오전\s*\d{1,2}시|오후\s*\d{1,2}시|Day\s?\d|[0-9]{1,2}시(?!간)/);
+  return match?.[0]?.trim() ?? '분석 확정';
 }
 
 function refreshFinalPlan(room: ChatRoom, summaryStyle = '꼼꼼하게'): ChatRoom {
@@ -499,6 +856,8 @@ function buildFinalPlan(room: ChatRoom, summaryStyle: string) {
 
   return {
     ...room.finalPlan,
+    title: `${room.destination} 여행 계획`,
+    period: room.period,
     members: `${room.members.length}명`,
     summary: buildStyledSummary(room, summaryStyle, firstTitle),
     shareText: buildStyledShareText(room, summaryStyle),
@@ -686,12 +1045,12 @@ function inferExtraction(text: string): Message['extraction'] {
 }
 
 function inferSchedule(text: string) {
-  const match = text.match(/(월요일|화요일|수요일|목요일|금요일|토요일|일요일|오전|오후|Day\s?\d|[0-9]{1,2}시)[^.!?。]*/);
+  const match = text.match(/(월요일|화요일|수요일|목요일|금요일|토요일|일요일|오전\s*\d{1,2}시|오후\s*\d{1,2}시|Day\s?\d|[0-9]{1,2}시(?!간))[^.!?。]*/);
   if (!match) return null;
 
   return {
-    date: match[1],
-    title: match[0].slice(0, 28),
+    date: match[1].trim(),
+    title: match[0].trim().slice(0, 28),
     status: /변경|바꾸|수정|대신/.test(text) ? '변경' : /확정|완료/.test(text) ? '확정' : '후보',
   };
 }

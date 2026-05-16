@@ -10,15 +10,19 @@ import {
   addMessageToRoom,
   analyzeRoomConversation,
   applyMessageToRoom,
+  applyPlinkOperations,
   confirmAnalysisCandidate,
   createRoom,
   deleteAnalysisCandidate,
   generateRoomBriefing,
+  handlePlinkMentionCommand,
   holdAnalysisCandidate,
   isBriefingCommand,
+  isPlinkMention,
   joinRoomAsMember,
   sharePlanBriefingToChat,
 } from './services/roomActions';
+import { callPlinkBot } from './services/plinkBot';
 import { appendRemoteInfoLog, loadRemoteRoom, saveRemoteRoom } from './services/remoteRooms';
 import { appendInfoLog, findRoomByShareCode, loadProfile, loadRooms, saveProfile, saveRooms } from './services/storage';
 import type { BudgetItem, ChatRoom, DecisionItem, Message, MessageApplyTarget, PanelId, Profile, ScheduleItem, TabId, TaskItem } from './types';
@@ -46,7 +50,17 @@ export default function App() {
       if (cancelled || !remoteRoom) return;
 
       setRooms((current) =>
-        current.map((room) => (room.shareCode === remoteRoom.shareCode ? remoteRoom : room)),
+        current.map((room) => {
+          if (room.shareCode !== remoteRoom.shareCode) return room;
+          const prevCount = room.messages.length;
+          const newCount = remoteRoom.messages.length;
+          const isActive = room.id === activeRoomId;
+          const addedCount = newCount > prevCount ? newCount - prevCount : 0;
+          return {
+            ...remoteRoom,
+            unread: isActive ? 0 : (room.unread ?? 0) + addedCount,
+          };
+        }),
       );
     };
 
@@ -193,11 +207,88 @@ export default function App() {
 
   const handleSendMessage = (text: string) => {
     if (!profile || !activeRoomId) return;
+
+    // @plink → show loading bubble synchronously, then resolve with AI
+    if (isPlinkMention(text)) {
+      const loadingMsgId = Date.now();
+      const capturedRoom = activeRoom; // capture before state update
+
+      updateActiveRoom((room) => {
+        const roomWithMessage = addMessageToRoom(room, { nickname: profile.nickname, userCode: profile.userCode, text, summaryStyle });
+        const loadingMsg = {
+          id: loadingMsgId,
+          sender: 'Plink' as const,
+          initials: 'P',
+          time: new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' }).format(new Date()),
+          text: '명령을 분석하고 있어요...',
+          extraction: { label: '봇 처리 중', tone: 'schedule' as const },
+        };
+        return { ...roomWithMessage, messages: [...roomWithMessage.messages, loadingMsg], lastMessage: loadingMsg.text };
+      });
+
+      if (!capturedRoom) return;
+      const command = text.replace(/@plink\s*/i, '').trim();
+
+      const resolvePlinkResponse = (aiResult: Awaited<ReturnType<typeof callPlinkBot>>) => {
+        setRooms((current) => {
+          const newRooms = current.map((room) => {
+            if (room.id !== activeRoomId) return room;
+
+            let updatedRoom: typeof room;
+            let reply: string;
+
+            if (aiResult && aiResult.operations.length > 0) {
+              updatedRoom = applyPlinkOperations(room, aiResult.operations, profile.nickname, summaryStyle);
+              reply = aiResult.reply;
+            } else {
+              // AI returned no ops or failed → regex fallback
+              const fallback = handlePlinkMentionCommand(room, { text, nickname: profile.nickname, summaryStyle });
+              updatedRoom = fallback.room;
+              reply = aiResult?.reply || fallback.reply;
+            }
+
+            const replyMsg = {
+              id: loadingMsgId,
+              sender: 'Plink' as const,
+              initials: 'P',
+              time: new Intl.DateTimeFormat('ko-KR', { hour: 'numeric', minute: '2-digit' }).format(new Date()),
+              text: reply,
+              cta: { label: '계획 노트 보기', action: 'open_plan' as const },
+              extraction: { label: '봇 반영', tone: 'schedule' as const },
+            };
+
+            return {
+              ...updatedRoom,
+              messages: updatedRoom.messages.map((m) => (m.id === loadingMsgId ? replyMsg : m)),
+              lastMessage: reply,
+            };
+          });
+
+          // Save the resolved room to remote so sync doesn't overwrite it with the loading bubble
+          const resolvedRoom = newRooms.find((r) => r.id === activeRoomId);
+          if (resolvedRoom) void saveRemoteRoom(resolvedRoom);
+
+          return newRooms;
+        });
+      };
+
+      void callPlinkBot(command, capturedRoom)
+        .then(resolvePlinkResponse)
+        .catch(() => resolvePlinkResponse(null));
+
+      return;
+    }
+
     updateActiveRoom((room) => {
+      // Add the user's message first
       const roomWithMessage = addMessageToRoom(room, { nickname: profile.nickname, userCode: profile.userCode, text, summaryStyle });
-      return isBriefingCommand(text)
-        ? generateRoomBriefing(roomWithMessage, { nickname: profile.nickname, summaryStyle })
-        : roomWithMessage;
+
+      // 브리핑 명령
+      if (isBriefingCommand(text)) {
+        return generateRoomBriefing(roomWithMessage, { nickname: profile.nickname, summaryStyle });
+      }
+
+      return roomWithMessage;
     });
   };
 
@@ -247,6 +338,13 @@ export default function App() {
     updateActiveRoom((room) => analyzeRoomConversation(room, { nickname: profile.nickname, summaryStyle: style }));
   };
 
+  const handleSelectRoom = (roomId: string) => {
+    setActiveRoomId(roomId);
+    setRooms((current) =>
+      current.map((room) => (room.id === roomId ? { ...room, unread: 0 } : room)),
+    );
+  };
+
   const handleDeleteRoom = (roomId: string) => {
     setRooms((current) => {
       const deletedRoom = current.find((room) => room.id === roomId);
@@ -286,7 +384,7 @@ export default function App() {
           onCopyRoomLink={handleCopyRoomLink}
           onApplyMessage={handleApplyMessage}
           onSendMessage={handleSendMessage}
-          onSelectRoom={setActiveRoomId}
+          onSelectRoom={handleSelectRoom}
           onDeleteRoom={handleDeleteRoom}
           onEditProfile={handleEditProfile}
           onRequestPlanBriefing={handleSharePlanBriefing}
@@ -328,7 +426,7 @@ export default function App() {
               tasks={activeRoom.tasks}
               decisions={activeRoom.decisions}
               budgetItems={activeRoom.budgetItems}
-              onSelectRoom={setActiveRoomId}
+              onSelectRoom={handleSelectRoom}
               onCopyRoomLink={handleCopyRoomLink}
               onToggleTask={toggleTask}
               onUpdateScheduleItem={(itemId, updates) => updateRoomList<ScheduleItem>('scheduleItems', itemId, updates)}

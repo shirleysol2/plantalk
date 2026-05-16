@@ -49,7 +49,8 @@ function buildCandidateSeeds(text: string, destination: string, summaryStyle = '
 }
 
 function inferScheduleCandidate(text: string, summaryStyle: string): CandidateSeed | null {
-  const match = text.match(/(월요일|화요일|수요일|목요일|금요일|토요일|일요일|오전|오후|Day\s?\d|[0-9]{1,2}시)[^.!?。]*/);
+  // N시간 (duration like "2시간") must NOT match as a schedule time → use negative lookahead (?!간)
+  const match = text.match(/(월요일|화요일|수요일|목요일|금요일|토요일|일요일|오전\s*\d{1,2}시|오후\s*\d{1,2}시|Day\s?\d|[0-9]{1,2}시(?!간))[^.!?。]*/);
   if (!match) return null;
 
   return {

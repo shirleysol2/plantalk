@@ -50,7 +50,30 @@ export function ChatView({
   const [openActionMessageId, setOpenActionMessageId] = useState<number | null>(null);
   const [openRoomMenuId, setOpenRoomMenuId] = useState<string | null>(null);
   const [isMobileRoomOpen, setIsMobileRoomOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  // Mentionable targets: Plink bot + room members
+  const mentionTargets = [
+    { name: 'Plink', hint: '계획 노트 수정 봇' },
+    ...(activeRoom?.members.map((m) => ({ name: m.name, hint: m.role })) ?? []),
+  ];
+
+  const filteredMentions = mentionQuery !== null
+    ? mentionTargets.filter((t) => t.name.toLowerCase().startsWith(mentionQuery.toLowerCase()))
+    : [];
+
+  const handleMessageInput = (value: string) => {
+    setMessageText(value);
+    const atMatch = value.match(/@(\w*)$/);
+    setMentionQuery(atMatch ? atMatch[1] : null);
+  };
+
+  const handleMentionSelect = (name: string) => {
+    setMessageText((current) => current.replace(/@\w*$/, `@${name} `));
+    setMentionQuery(null);
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -58,6 +81,7 @@ export function ChatView({
 
     onSendMessage(messageText);
     setMessageText('');
+    setMentionQuery(null);
   };
 
   const closeActionMenu = () => setOpenActionMessageId(null);
@@ -141,6 +165,17 @@ export function ChatView({
     closeActionMenu();
     closeRoomMenu();
   }, [activeRoomId]);
+
+  // Scroll to bottom when messages change or room changes
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'instant' });
+  }, [activeRoom?.messages.length, activeRoomId]);
+
+  // Also scroll to bottom when Plink loading bubble resolves (last message text changes)
+  useEffect(() => {
+    const lastMsg = activeRoom?.messages.at(-1);
+    if (lastMsg) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeRoom?.messages.at(-1)?.text]);
 
   const viewClassName = `chat-view ${rooms.length > 0 ? 'has-rooms' : 'is-empty'} ${isMobileRoomOpen ? 'is-room-open' : ''}`;
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
@@ -312,20 +347,39 @@ export function ChatView({
                   </article>
                 );
               })}
+              <div ref={bottomRef} />
             </div>
 
-            <form className="composer" onSubmit={handleSubmit}>
-              <MessageCircle size={18} />
-              <input
-                aria-label="메시지 입력"
-                placeholder={`${profile.nickname}님, 메시지를 입력하세요`}
-                value={messageText}
-                onChange={(event) => setMessageText(event.target.value)}
-              />
-              <button aria-label="메시지 보내기" type="submit">
-                <SendHorizontal size={18} />
-              </button>
-            </form>
+            <div className="composer-wrap">
+              {filteredMentions.length > 0 && (
+                <div className="mention-popup" role="listbox" aria-label="멘션 대상">
+                  {filteredMentions.map((target) => (
+                    <button
+                      key={target.name}
+                      className="mention-item"
+                      onPointerDown={(e) => { e.preventDefault(); handleMentionSelect(target.name); }}
+                      role="option"
+                      type="button"
+                    >
+                      <strong>@{target.name}</strong>
+                      <span>{target.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <form className="composer" onSubmit={handleSubmit}>
+                <MessageCircle size={18} />
+                <input
+                  aria-label="메시지 입력"
+                  placeholder={`${profile.nickname}님, 메시지를 입력하세요 (@Plink 명령 가능)`}
+                  value={messageText}
+                  onChange={(event) => handleMessageInput(event.target.value)}
+                />
+                <button aria-label="메시지 보내기" type="submit">
+                  <SendHorizontal size={18} />
+                </button>
+              </form>
+            </div>
           </>
         ) : (
           <div className="empty-chat">
