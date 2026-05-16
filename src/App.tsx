@@ -272,7 +272,7 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${activeTab !== 'chat' ? 'panel-mode' : ''}`}>
       <div className="sky-sticker cloud-one" />
       <div className="sky-sticker cloud-two" />
       <div className="plane-sticker" />
