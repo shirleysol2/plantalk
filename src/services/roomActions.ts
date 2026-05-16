@@ -64,7 +64,7 @@ export function createRoom({ title, destination, period, nickname, userCode }: C
     sender: 'Plink',
     initials: 'P',
     time: formatTime(),
-    text: `${title} 채팅방이 만들어졌어요. 대화하면 계획 노트가 이 방 기준으로 정리돼요.`,
+    text: `${title} 채팅방이 만들어졌어요! 🎉\n\n대화를 나누면 일정·할 일·결정·예산이 계획 노트에 자동으로 정리돼요.\n\n저 @Plink 에게 이렇게 말해보세요:\n• "@Plink 7/1~7/4 일정으로 바꿔줘"\n• "@Plink 오후 3시에 한강 피크닉 추가해줘"\n• "@Plink 항공권 예약 할 일에 넣어줘"\n• "@Plink 지금 뭐가 정리됐어?"`,
     extraction: { label: '방 생성', tone: 'schedule' },
   };
 
@@ -328,9 +328,13 @@ export function applyPlinkOperations(
         r = { ...r, period: op.newPeriod };
         break;
 
-      case 'updateDestination':
-        r = { ...r, destination: op.newDestination };
+      case 'updateDestination': {
+        const updatedTitle = r.title.includes(r.destination)
+          ? r.title.replace(r.destination, op.newDestination)
+          : r.title;
+        r = { ...r, destination: op.newDestination, title: updatedTitle };
         break;
+      }
 
       case 'updateTitle':
         r = { ...r, title: op.newTitle };
@@ -537,7 +541,10 @@ export function handlePlinkMentionCommand(
   if (destinationMatch) {
     const newDest = (destinationMatch[1] ?? destinationMatch[2] ?? '').replace(/\s*(계획|노트|여행|여행지|장소|목적지)\s*/g, '').trim();
     if (newDest && newDest.length >= 2 && !/바꿔|변경|수정|삭제|추가/.test(newDest)) {
-      updatedRoom = { ...updatedRoom, destination: newDest };
+      const syncedTitle = updatedRoom.title.includes(updatedRoom.destination)
+        ? updatedRoom.title.replace(updatedRoom.destination, newDest)
+        : updatedRoom.title;
+      updatedRoom = { ...updatedRoom, destination: newDest, title: syncedTitle };
       changes.push(`여행지를 "${newDest}"(으)로 변경했어요.`);
     }
   }

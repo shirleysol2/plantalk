@@ -42,6 +42,10 @@ type PlanNoteProps = {
   onHoldAnalysisCandidate?: (candidateId: number) => void;
   onDeleteAnalysisCandidate?: (candidateId: number) => void;
   onAnalyzeRoom?: () => void;
+  onAddScheduleItem?: () => void;
+  onAddTaskItem?: () => void;
+  onAddDecisionItem?: () => void;
+  onAddBudgetItem?: () => void;
 };
 
 type EditableSection = 'schedule' | 'tasks' | 'decisions' | 'budget';
@@ -73,6 +77,10 @@ export function PlanNote({
   onHoldAnalysisCandidate,
   onDeleteAnalysisCandidate,
   onAnalyzeRoom,
+  onAddScheduleItem,
+  onAddTaskItem,
+  onAddDecisionItem,
+  onAddBudgetItem,
 }: PlanNoteProps) {
   const [editingSections, setEditingSections] = useState<Record<EditableSection, boolean>>({
     schedule: false,
@@ -377,6 +385,7 @@ export function PlanNote({
               <MapPinned size={18} />
               <h3>일정</h3>
               {renderSectionEditButton('schedule')}
+              {onAddScheduleItem && <button className="note-add-button" onClick={onAddScheduleItem} type="button">+ 추가</button>}
             </div>
             <div className="timeline">
               {[...scheduleItems].sort((a, b) => parseScheduleMinutes(a.date) - parseScheduleMinutes(b.date)).map((item) => (
@@ -419,6 +428,7 @@ export function PlanNote({
               <ListTodo size={18} />
               <h3>할 일</h3>
               {renderSectionEditButton('tasks')}
+              {onAddTaskItem && <button className="note-add-button" onClick={onAddTaskItem} type="button">+ 추가</button>}
             </div>
             <div className="task-list">
               {tasks.map((task) => (
@@ -453,6 +463,7 @@ export function PlanNote({
               <Vote size={18} />
               <h3>결정 필요</h3>
               {renderSectionEditButton('decisions')}
+              {onAddDecisionItem && <button className="note-add-button" onClick={onAddDecisionItem} type="button">+ 추가</button>}
             </div>
             <div className="decision-list">
               {decisions.map((decision) => (
@@ -516,6 +527,7 @@ export function PlanNote({
               <Coins size={18} />
               <h3>예산</h3>
               {renderSectionEditButton('budget')}
+              {onAddBudgetItem && <button className="note-add-button" onClick={onAddBudgetItem} type="button">+ 추가</button>}
             </div>
             <div className="budget-total">
               <Clock3 size={16} />

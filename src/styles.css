@@ -1788,6 +1788,28 @@ h3 {
   display: inline;
 }
 
+.note-add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  border: 1.5px dashed #b5ad9f;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: transparent;
+  color: #7a7168;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 4px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.note-add-button:hover {
+  background: #f4f1eb;
+  border-color: #8a7f6f;
+  color: #3a3530;
+}
+
 .timeline,
 .task-list,
 .decision-list,

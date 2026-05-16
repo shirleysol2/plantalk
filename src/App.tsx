@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BottomNav } from './components/BottomNav';
 import { ChatView } from './components/ChatView';
 import { PanelTabs } from './components/PanelTabs';
@@ -35,6 +35,8 @@ export default function App() {
   const [profile, setProfileState] = useState<Profile | null>(() => loadProfile());
   const [summaryStyle, setSummaryStyle] = useState(summaryStyles[0]);
   const activeRoom = rooms.find((room) => room.id === activeRoomId);
+  const roomsRef = useRef(rooms);
+  useEffect(() => { roomsRef.current = rooms; }, [rooms]);
 
   useEffect(() => {
     saveRooms(rooms);
@@ -72,6 +74,38 @@ export default function App() {
       window.clearInterval(intervalId);
     };
   }, [activeRoom?.shareCode]);
+
+  // Background sync for non-active rooms — updates unread counts every 15s
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+
+    const syncOtherRooms = async () => {
+      const toSync = roomsRef.current.filter((r) => r.shareCode && r.id !== activeRoomId);
+      if (toSync.length === 0) return;
+
+      const results = await Promise.all(toSync.map((r) => loadRemoteRoom(r.shareCode)));
+      if (cancelled) return;
+
+      setRooms((current) =>
+        current.map((room) => {
+          if (!room.shareCode || room.id === activeRoomId) return room;
+          const idx = toSync.findIndex((r) => r.id === room.id);
+          const remote = results[idx];
+          if (!remote) return room;
+          const added = Math.max(0, remote.messages.length - room.messages.length);
+          if (added === 0) return room;
+          return { ...remote, unread: (room.unread ?? 0) + added };
+        }),
+      );
+    };
+
+    const intervalId = window.setInterval(syncOtherRooms, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [activeRoomId, profile]);
 
   useEffect(() => {
     if (!profile) return;
@@ -365,6 +399,35 @@ export default function App() {
     setActivePanel('settings');
   };
 
+  const handleAddScheduleItem = () => {
+    updateActiveRoom((room) => ({
+      ...room,
+      scheduleItems: [...room.scheduleItems, { id: Date.now(), date: '', title: '새 일정', status: '후보' }],
+    }));
+  };
+
+  const handleAddTaskItem = () => {
+    if (!profile) return;
+    updateActiveRoom((room) => ({
+      ...room,
+      tasks: [...room.tasks, { id: Date.now(), title: '새 할 일', owner: profile.nickname, done: false }],
+    }));
+  };
+
+  const handleAddDecisionItem = () => {
+    updateActiveRoom((room) => ({
+      ...room,
+      decisions: [...room.decisions, { id: Date.now(), question: '새 결정 사항', options: [], state: '결정 필요' }],
+    }));
+  };
+
+  const handleAddBudgetItem = () => {
+    updateActiveRoom((room) => ({
+      ...room,
+      budgetItems: [...room.budgetItems, { id: Date.now(), category: '새 항목', amount: '0원', note: '' }],
+    }));
+  };
+
   if (!profile) {
     return <ProfileGate onComplete={setProfile} />;
   }
@@ -441,6 +504,10 @@ export default function App() {
               onHoldAnalysisCandidate={handleHoldAnalysisCandidate}
               onDeleteAnalysisCandidate={handleDeleteAnalysisCandidate}
               onAnalyzeRoom={handleAnalyzeRoom}
+              onAddScheduleItem={handleAddScheduleItem}
+              onAddTaskItem={handleAddTaskItem}
+              onAddDecisionItem={handleAddDecisionItem}
+              onAddBudgetItem={handleAddBudgetItem}
             />
           )}
           {showPlan && !activeRoom && (
