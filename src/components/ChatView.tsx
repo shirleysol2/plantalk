@@ -252,7 +252,7 @@ export function ChatView({
                 <ArrowLeft size={18} />
               </button>
               <div className="chat-title-block">
-                <p className="eyebrow">{activeRoom.subtitle}</p>
+                {activeRoom.subtitle && <p className="eyebrow">{activeRoom.subtitle}</p>}
                 <PlinkLogo className="chat-logo" />
                 <p className="chat-room-name">{activeRoom.destination}</p>
               </div>
@@ -384,8 +384,24 @@ export function ChatView({
         ) : (
           <div className="empty-chat">
             <PlinkLogo className="empty-logo" />
-            <h1>새로운 계획 노트 만들기</h1>
-            <p>첫 채팅방을 만들면 대화에서 일정, 할 일, 결정사항, 예산을 정리해드릴게요.</p>
+            <h1>대화로 계획 세우기</h1>
+            <p>친구들과 채팅하면서 일정·할 일·결정·예산이 자동으로 정리돼요.</p>
+            <div className="use-case-grid" aria-label="어떤 계획이든">
+              {[
+                { emoji: '✈️', label: '여행', example: '제주도 4박 5일' },
+                { emoji: '🍻', label: '회식·번개', example: '금요일 저녁 강남' },
+                { emoji: '📚', label: '스터디', example: '알고리즘 스터디' },
+                { emoji: '💼', label: '팀 프로젝트', example: '앱 출시 준비' },
+                { emoji: '💑', label: '커플 일정', example: '여름 휴가 데이트' },
+                { emoji: '🎉', label: '파티·이벤트', example: '생일 파티 계획' },
+              ].map(({ emoji, label, example }) => (
+                <div className="use-case-card" key={label}>
+                  <span className="use-case-emoji">{emoji}</span>
+                  <strong>{label}</strong>
+                  <small>{example}</small>
+                </div>
+              ))}
+            </div>
             <NewRoomForm ctaLabel="새로운 계획 노트 만들기" onCreateRoom={handleCreateRoom} />
           </div>
         )}
