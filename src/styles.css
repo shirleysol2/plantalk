@@ -37,19 +37,6 @@ button {
   overflow: hidden;
 }
 
-.app-shell.panel-mode {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.app-shell.panel-mode .chat-column {
-  display: none;
-}
-
-.app-shell.panel-mode .side-panel {
-  width: 100%;
-  max-width: none;
-}
-
 .profile-gate {
   position: relative;
   display: grid;
@@ -795,7 +782,6 @@ h3 {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  min-width: 0;
   max-width: 82%;
 }
 
@@ -821,8 +807,6 @@ h3 {
   position: relative;
   display: grid;
   gap: 5px;
-  min-width: 0;
-  max-width: 100%;
 }
 
 .sender {
@@ -834,8 +818,6 @@ h3 {
 .message-bubble {
   display: grid;
   gap: 10px;
-  min-width: 0;
-  max-width: min(520px, 62vw);
   border: 2px solid #1f1d1b;
   padding: 12px 14px;
   border-radius: 22px 22px 22px 7px;
@@ -847,9 +829,6 @@ h3 {
 }
 
 .message-bubble > span {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
   white-space: pre-line;
 }
 
@@ -875,8 +854,6 @@ h3 {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 0;
-  max-width: 100%;
 }
 
 .message-row.mine .message-action-line {
@@ -1130,94 +1107,6 @@ h3 {
   min-width: 0;
 }
 
-.app-shell.panel-mode .plan-note {
-  width: min(1440px, 100%);
-  margin: 0 auto;
-  gap: 18px;
-}
-
-.plan-hero {
-  display: flex;
-  min-height: 168px;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  border-radius: 26px;
-  padding: 26px;
-  background:
-    linear-gradient(90deg, rgba(31, 29, 27, 0.78), rgba(31, 29, 27, 0.28)),
-    linear-gradient(135deg, #d9ecff 0%, #ffe9a8 52%, #e7f6df 100%);
-  color: #fff;
-  overflow: hidden;
-}
-
-.plan-hero p {
-  margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.76);
-  font-size: 13px;
-  font-weight: 1000;
-  letter-spacing: 0.08em;
-}
-
-.plan-hero h2 {
-  color: #fff;
-  text-shadow: none;
-}
-
-.plan-hero span {
-  display: block;
-  margin-top: 8px;
-  color: rgba(255, 255, 255, 0.82);
-  font-weight: 800;
-}
-
-.plan-hero .inline-link-button {
-  flex: 0 0 auto;
-  margin-top: 0;
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.plan-summary-cards {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.plan-summary-cards article {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  border: 1px solid rgba(234, 223, 202, 0.95);
-  border-radius: 18px;
-  padding: 18px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 10px 22px rgba(58, 44, 19, 0.08);
-  text-align: center;
-}
-
-.plan-summary-cards span {
-  color: var(--plink-subtext);
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.plan-summary-cards strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--plink-text);
-  font-size: 17px;
-  line-height: 1.3;
-}
-
-.app-shell:not(.panel-mode) .plan-summary-cards {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.app-shell:not(.panel-mode) .travel-briefing-list,
-.app-shell:not(.panel-mode) .day-brief-list {
-  grid-template-columns: 1fr;
-}
-
 .panel-heading {
   padding: 4px 4px 2px;
 }
@@ -1323,36 +1212,6 @@ h3 {
   box-shadow: 6px 6px 0 #1f1d1b;
 }
 
-.app-shell.panel-mode .briefing-card {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
-}
-
-.app-shell.panel-mode .briefing-status,
-.app-shell.panel-mode .briefing-title,
-.app-shell.panel-mode .briefing-summary,
-.app-shell.panel-mode .briefing-metrics,
-.app-shell.panel-mode .travel-briefing-list,
-.app-shell.panel-mode .day-brief-list,
-.app-shell.panel-mode .share-briefing {
-  max-width: none;
-}
-
-.briefing-section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
-  color: var(--plink-text);
-}
-
-.briefing-section-title h3 {
-  font-size: 18px;
-}
-
 .briefing-status {
   display: flex;
   align-items: center;
@@ -1399,7 +1258,6 @@ h3 {
 
 .travel-briefing-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1455,7 +1313,6 @@ h3 {
 
 .day-brief-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
 }
 
@@ -1582,15 +1439,12 @@ h3 {
 }
 
 .link-history-list small {
-  min-width: 0;
-  max-width: 100%;
   overflow: hidden;
   color: #655c50;
   font-weight: 800;
   overflow-wrap: anywhere;
-  word-break: break-all;
   text-overflow: ellipsis;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .link-history-list strong {
@@ -2416,12 +2270,6 @@ h1 em,
   .message-bubble {
     max-width: min(280px, 72vw);
     overflow-wrap: anywhere;
-  }
-
-  .travel-briefing-list,
-  .day-brief-list,
-  .plan-summary-cards {
-    grid-template-columns: 1fr;
   }
 
   .message-action-menu {

@@ -97,12 +97,6 @@ export function PlanNote({
   const briefingShareText = hasBriefedContent
     ? `${room.title} 브리핑: 일정 ${confirmedScheduleCount}, 할 일 ${confirmedTaskCount}, 결정 ${confirmedDecisionCount}, 예산 ${validBudgetCount}, 링크 ${linkItems.length}`
     : finalPlan.shareText;
-  const overviewCards = [
-    { label: '숙소', value: travelBriefing.stay },
-    { label: '참여', value: finalPlan.members },
-    { label: '예산', value: `1인 ${total.toLocaleString('ko-KR')}원` },
-    { label: '링크', value: `${linkItems.length}개` },
-  ];
   const isEditing = (section: EditableSection) => editingSections[section];
   const toggleSectionEdit = (section: EditableSection) => {
     setEditingSections((current) => ({ ...current, [section]: !current[section] }));
@@ -123,16 +117,13 @@ export function PlanNote({
 
   return (
     <div className="plan-note">
-      <section className="plan-hero">
-        <div>
-          <p>{finalPlan.period} · {finalPlan.members}</p>
-          <h2>{finalPlan.title}</h2>
-          <span>{room.destination} 대화에서 정리된 최신 계획 노트</span>
-        </div>
+      <div className="panel-heading">
+        <p className="eyebrow">방금 정리된</p>
+        <h2>{room.destination} 일정표</h2>
         <button aria-label="공유 링크 복사" className="inline-link-button" onClick={() => onCopyRoomLink(room)} type="button">
           <Link2 size={16} />
         </button>
-      </section>
+      </div>
 
       <div className="plan-room-switcher" aria-label="계획 노트 채팅방 선택">
         {rooms.map((item) => (
@@ -145,15 +136,6 @@ export function PlanNote({
             <span>{item.destination.slice(0, 1)}</span>
             {item.title}
           </button>
-        ))}
-      </div>
-
-      <div className="plan-summary-cards" aria-label="계획 요약">
-        {overviewCards.map((card) => (
-          <article key={card.label}>
-            <span>{card.label}</span>
-            <strong>{card.value}</strong>
-          </article>
         ))}
       </div>
 
@@ -193,6 +175,20 @@ export function PlanNote({
             </div>
           </div>
           <p className="briefing-summary">{briefingSummary}</p>
+          <div className="travel-briefing-list" aria-label="여행 브리핑 핵심 정보">
+            <div>
+              <span>확정 날짜</span>
+              <strong>{travelBriefing.date}</strong>
+            </div>
+            <div>
+              <span>장소</span>
+              <strong>{travelBriefing.place}</strong>
+            </div>
+            <div>
+              <span>숙소</span>
+              <strong>{travelBriefing.stay}</strong>
+            </div>
+          </div>
           <div className="briefing-metrics" aria-label="브리핑 요약 지표">
             <span>
               <strong>{confirmedScheduleCount}</strong>
@@ -214,28 +210,6 @@ export function PlanNote({
               <strong>{linkItems.length}</strong>
               링크
             </span>
-          </div>
-          <div className="briefing-section-title">
-            <MapPinned size={18} />
-            <h3>여행 개요</h3>
-          </div>
-          <div className="travel-briefing-list" aria-label="여행 브리핑 핵심 정보">
-            <div>
-              <span>확정 날짜</span>
-              <strong>{travelBriefing.date}</strong>
-            </div>
-            <div>
-              <span>장소</span>
-              <strong>{travelBriefing.place}</strong>
-            </div>
-            <div>
-              <span>숙소</span>
-              <strong>{travelBriefing.stay}</strong>
-            </div>
-          </div>
-          <div className="briefing-section-title">
-            <Clock3 size={18} />
-            <h3>일정 흐름</h3>
           </div>
           <div className="day-brief-list">
             {travelBriefing.itinerary.map((day) => (
