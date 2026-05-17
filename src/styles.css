@@ -2408,10 +2408,11 @@ h1 em,
     height: 100%;
     grid-template-rows: auto auto minmax(0, 1fr);
     gap: 10px;
-    padding: 16px 14px 92px;
+    padding: 16px 14px calc(92px + env(safe-area-inset-bottom, 0px));
     border-right: 0;
     border-bottom: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .chat-view.is-room-open .room-list {
@@ -2496,7 +2497,7 @@ h1 em,
   }
 
   .side-panel {
-    padding: 14px 14px 96px;
+    padding: 14px 14px calc(96px + env(safe-area-inset-bottom, 0px));
     background: #fffdf8;
     overflow-y: auto;
   }
@@ -2571,7 +2572,7 @@ h1 em,
   .composer {
     gap: 8px;
     min-height: 58px;
-    padding: 8px 10px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
   }
 
   .composer > svg {
@@ -2607,7 +2608,7 @@ h1 em,
   }
 
   .empty-chat {
-    padding: 28px 22px 118px;
+    padding: 28px 22px calc(118px + env(safe-area-inset-bottom, 0px));
   }
 
   .empty-chat h1 {
@@ -2628,7 +2629,7 @@ h1 em,
   .bottom-nav {
     position: fixed;
     right: 12px;
-    bottom: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     left: 12px;
     z-index: 10;
     display: grid;
@@ -2699,6 +2700,36 @@ h1 em,
     margin-right: -14px;
     padding-right: 14px;
   }
+
+  /* Prevent iOS auto-zoom on inputs (requires font-size >= 16px) */
+  .new-room-form input,
+  .new-room-form textarea,
+  .profile-field input,
+  .profile-field textarea,
+  .calendar-range-panel input,
+  .timeline-item input,
+  .task-item input,
+  .decision-item input,
+  .budget-item input,
+  .chat-search input {
+    font-size: 16px !important;
+  }
+
+  /* 2-column use-case grid on narrow screens */
+  .use-case-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Compact plan-type chips */
+  .plan-type-chip {
+    font-size: 10px;
+    padding: 4px 8px;
+    gap: 3px;
+  }
+
+  .plan-type-chip span {
+    font-size: 14px;
+  }
 }
 
 /* Plink brand refresh */
@@ -2732,42 +2763,43 @@ h1 em,
 }
 
 .plink-logo-mark {
-  width: 58px;
+  width: 66px;
   height: auto;
   flex: 0 0 auto;
   overflow: visible;
 }
 
-.plink-logo-bubble-blue,
-.plink-logo-bubble-yellow,
-.plink-logo-dot {
-  vector-effect: non-scaling-stroke;
-}
-
-.plink-logo-bubble-blue {
-  fill: #d9ecff;
-  stroke: #1f1f23;
-  stroke-width: 4;
+/* ── Logo character fills ──────────────────────────────────────────────── */
+.plink-logo-speech {
+  fill: #DCF4F2;
+  stroke: #2A2020;
+  stroke-width: 2.2;
   stroke-linejoin: round;
 }
 
-.plink-logo-bubble-yellow {
-  fill: var(--plink-yellow);
-  stroke: none;
+.plink-logo-speech-dot {
+  fill: #5BB8B2;
 }
 
-.plink-logo-dot {
-  fill: var(--plink-coral);
+.plink-logo-blob-coral {
+  fill: #E87878;
+  stroke: #2A2020;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
 }
 
-.plink-logo-plane {
-  fill: white;
-  opacity: 0.95;
+.plink-logo-blob-teal {
+  fill: #5BBFBA;
+  stroke: #2A2020;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
 }
 
-.plink-logo-plane-wing {
-  fill: white;
-  opacity: 0.55;
+.plink-logo-blob-yellow {
+  fill: #F2C050;
+  stroke: #2A2020;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
 }
 
 .plink-logo-word {
@@ -2792,7 +2824,7 @@ h1 em,
 }
 
 .profile-logo .plink-logo-mark {
-  width: 82px;
+  width: 94px;
 }
 
 .profile-logo .plink-logo-word {
@@ -2804,7 +2836,7 @@ h1 em,
 }
 
 .chat-logo .plink-logo-mark {
-  width: 44px;
+  width: 50px;
 }
 
 .chat-logo .plink-logo-word {
@@ -2823,7 +2855,7 @@ h1 em,
 }
 
 .empty-logo .plink-logo-mark {
-  width: 74px;
+  width: 110px;
 }
 
 .empty-logo .plink-logo-word {
@@ -3252,7 +3284,7 @@ h1 em {
   }
 
   .profile-logo .plink-logo-mark {
-    width: 64px;
+    width: 74px;
   }
 
   .profile-logo .plink-logo-word {
@@ -3280,7 +3312,7 @@ h1 em {
   }
 
   .chat-logo .plink-logo-mark {
-    width: 36px;
+    width: 42px;
   }
 
   .chat-logo .plink-logo-word {
@@ -3294,7 +3326,7 @@ h1 em {
   }
 
   .empty-logo .plink-logo-mark {
-    width: 62px;
+    width: 90px;
   }
 
   .empty-logo .plink-logo-word {
