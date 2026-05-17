@@ -657,9 +657,17 @@ button {
 .chat-main {
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  height: 100%;
   min-width: 0;
   min-height: 0;
 }
+
+/* 검색창 on/off 돼도 각 행 위치 고정 */
+.chat-header    { grid-row: 1; }
+.chat-summary   { grid-row: 2; }
+.chat-search    { grid-row: 3; }
+.message-list   { grid-row: 4; }
+.composer-wrap  { grid-row: 5; }
 
 .chat-header {
   display: flex;
@@ -859,6 +867,10 @@ h3 {
   padding: 8px 12px;
   background: #fffdf8;
   color: #1f1d1b;
+}
+
+.chat-search.is-collapsed {
+  display: none;
 }
 
 .chat-search input {
@@ -2515,13 +2527,11 @@ h1 em,
   .chat-main {
     display: none;
     min-height: 0;
-    overflow: hidden;
   }
 
   .chat-view.is-room-open .chat-main,
   .chat-view.is-empty .chat-main {
     display: grid;
-    height: 100%;
     min-height: 0;
   }
 
@@ -2631,19 +2641,6 @@ h1 em,
     border-width: 2px;
   }
 
-  .share-room-button {
-    width: auto;
-    min-height: 38px;
-    padding: 0 12px;
-    border-color: #1f1d1b;
-    background: #ff6f59;
-    color: #fffdf8;
-  }
-
-  .share-room-button span {
-    display: inline;
-    font-size: 13px;
-  }
 
   .empty-chat {
     padding: 28px 22px calc(118px + env(safe-area-inset-bottom, 0px));

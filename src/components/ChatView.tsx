@@ -139,10 +139,13 @@ export function ChatView({
 
   const handleToggleSearch = () => {
     setIsSearchOpen((prev) => {
-      if (prev) setSearchQuery('');
-      return !prev;
+      if (prev) {
+        setSearchQuery('');
+        return false;
+      }
+      setTimeout(() => searchInputRef.current?.focus(), 80);
+      return true;
     });
-    setTimeout(() => searchInputRef.current?.focus(), 50);
   };
 
   useEffect(() => {
@@ -278,9 +281,8 @@ export function ChatView({
                 >
                   <Search size={17} />
                 </button>
-                <button aria-label="공유 링크 복사" className="share-room-button" onClick={() => onCopyRoomLink(activeRoom)} type="button">
+                <button aria-label="공유 링크 복사" className="header-icon-button" onClick={() => onCopyRoomLink(activeRoom)} type="button">
                   <Link2 size={17} />
-                  <span>공유</span>
                 </button>
               </div>
             </header>
@@ -293,19 +295,17 @@ export function ChatView({
               </button>
             </div>
 
-            {isSearchOpen && (
-              <label className="chat-search">
-                <Search size={16} />
-                <input
-                  ref={searchInputRef}
-                  aria-label="채팅 검색"
-                  placeholder="채팅 검색"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                />
-                {normalizedSearchQuery && <span>{visibleMessages?.length ?? 0}</span>}
-              </label>
-            )}
+            <label className={`chat-search ${isSearchOpen ? '' : 'is-collapsed'}`}>
+              <Search size={16} />
+              <input
+                ref={searchInputRef}
+                aria-label="채팅 검색"
+                placeholder="채팅 검색"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+              {normalizedSearchQuery && <span>{visibleMessages?.length ?? 0}</span>}
+            </label>
 
             <div className="message-list">
               {visibleMessages?.length === 0 && <p className="empty-search-result">검색 결과가 없습니다.</p>}
