@@ -47,10 +47,12 @@ export function ChatView({
 }: ChatViewProps) {
   const [messageText, setMessageText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [openActionMessageId, setOpenActionMessageId] = useState<number | null>(null);
   const [openRoomMenuId, setOpenRoomMenuId] = useState<string | null>(null);
   const [isMobileRoomOpen, setIsMobileRoomOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -135,6 +137,14 @@ export function ChatView({
     closeActionMenu();
   };
 
+  const handleToggleSearch = () => {
+    setIsSearchOpen((prev) => {
+      if (prev) setSearchQuery('');
+      return !prev;
+    });
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+  };
+
   useEffect(() => {
     const handlePointerDownOutside = (event: globalThis.PointerEvent) => {
       if (!(event.target instanceof Element)) return;
@@ -164,6 +174,8 @@ export function ChatView({
   useEffect(() => {
     closeActionMenu();
     closeRoomMenu();
+    setIsSearchOpen(false);
+    setSearchQuery('');
   }, [activeRoomId]);
 
   // Scroll to bottom when messages change or room changes
@@ -256,14 +268,21 @@ export function ChatView({
                 <PlinkLogo className="chat-logo" />
                 <p className="chat-room-name">{activeRoom.destination}</p>
               </div>
-              <div className="header-meta">
-                <CalendarDays size={18} />
-                <span>{activeRoom.period}</span>
+              <div className="header-actions">
+                <button
+                  aria-label="채팅 검색"
+                  aria-pressed={isSearchOpen}
+                  className={`header-icon-button ${isSearchOpen ? 'active' : ''}`}
+                  onClick={handleToggleSearch}
+                  type="button"
+                >
+                  <Search size={17} />
+                </button>
+                <button aria-label="공유 링크 복사" className="share-room-button" onClick={() => onCopyRoomLink(activeRoom)} type="button">
+                  <Link2 size={17} />
+                  <span>공유</span>
+                </button>
               </div>
-              <button aria-label="공유 링크 복사" className="share-room-button" onClick={() => onCopyRoomLink(activeRoom)} type="button">
-                <Link2 size={17} />
-                <span>공유</span>
-              </button>
             </header>
 
             <div className="chat-summary">
@@ -274,16 +293,19 @@ export function ChatView({
               </button>
             </div>
 
-            <label className="chat-search">
-              <Search size={16} />
-              <input
-                aria-label="채팅 검색"
-                placeholder="채팅 검색"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-              />
-              {normalizedSearchQuery && <span>{visibleMessages?.length ?? 0}</span>}
-            </label>
+            {isSearchOpen && (
+              <label className="chat-search">
+                <Search size={16} />
+                <input
+                  ref={searchInputRef}
+                  aria-label="채팅 검색"
+                  placeholder="채팅 검색"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+                {normalizedSearchQuery && <span>{visibleMessages?.length ?? 0}</span>}
+              </label>
+            )}
 
             <div className="message-list">
               {visibleMessages?.length === 0 && <p className="empty-search-result">검색 결과가 없습니다.</p>}

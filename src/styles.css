@@ -757,6 +757,33 @@ h3 {
   font-weight: 900;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-icon-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ded8ce;
+  border-radius: 50%;
+  background: transparent;
+  color: #1f1d1b;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.header-icon-button:hover,
+.header-icon-button.active {
+  border-color: #1f1d1b;
+  background: #1f1d1b;
+  color: #fffdf8;
+}
+
 .share-room-button,
 .inline-link-button {
   justify-content: center;
@@ -2494,6 +2521,8 @@ h1 em,
   .chat-view.is-room-open .chat-main,
   .chat-view.is-empty .chat-main {
     display: grid;
+    height: 100%;
+    min-height: 0;
   }
 
   .side-panel {
@@ -2516,6 +2545,15 @@ h1 em,
     align-items: center;
     gap: 9px;
     padding: 11px 12px 10px;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .header-icon-button {
+    width: 34px;
+    height: 34px;
   }
 
   .mobile-back-button {
@@ -2609,6 +2647,8 @@ h1 em,
 
   .empty-chat {
     padding: 28px 22px calc(118px + env(safe-area-inset-bottom, 0px));
+    align-content: start;
+    overflow-y: auto;
   }
 
   .empty-chat h1 {
@@ -2732,6 +2772,9 @@ h1 em,
   }
 }
 
+/* Baloo 2 font for logo wordmark */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&display=swap');
+
 /* Plink brand refresh */
 :root {
   --plink-blue: #dae9ff;
@@ -2769,43 +2812,13 @@ h1 em,
   overflow: visible;
 }
 
-/* ── Logo character fills ──────────────────────────────────────────────── */
-.plink-logo-speech {
-  fill: #DCF4F2;
-  stroke: #2A2020;
-  stroke-width: 2.2;
-  stroke-linejoin: round;
-}
-
-.plink-logo-speech-dot {
-  fill: #5BB8B2;
-}
-
-.plink-logo-blob-coral {
-  fill: #E87878;
-  stroke: #2A2020;
-  stroke-width: 2.2;
-  stroke-linejoin: round;
-}
-
-.plink-logo-blob-teal {
-  fill: #5BBFBA;
-  stroke: #2A2020;
-  stroke-width: 2.2;
-  stroke-linejoin: round;
-}
-
-.plink-logo-blob-yellow {
-  fill: #F2C050;
-  stroke: #2A2020;
-  stroke-width: 2.2;
-  stroke-linejoin: round;
-}
+/* ── Logo sizes (viewBox 84×66) ──────────────────────────────────────── */
 
 .plink-logo-word {
+  font-family: 'Baloo 2', 'Apple SD Gothic Neo', ui-sans-serif, sans-serif;
   color: var(--plink-text);
   font-size: 42px;
-  font-weight: 1000;
+  font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
 }
